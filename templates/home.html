@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Nha Khoa Thạnh Phú - Chăm sóc nụ cười tận tâm.">
   <title>Nha Khoa Thạnh Phú | Chăm sóc nụ cười</title>
-  <link rel="stylesheet" href="/static/home.css">
+  <link rel="stylesheet" href="/static/home.css?v=booking2">
 </head>
 <body>
 
@@ -189,6 +189,116 @@
     </div>
   </section>
 
+  <!-- DAT LICH KHAM TRUC TUYEN -->
+  <section class="booking section" id="dat-lich">
+    <div class="container">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">ĐẶT LỊCH TRỰC TUYẾN</span>
+          <h2>Đặt lịch khám Nha Khoa Thạnh Phú</h2>
+          <p>
+            Điền thông tin bên dưới để nhân viên
+            liên hệ xác nhận lịch khám.
+          </p>
+        </div>
+      </div>
+
+{% if request.query_params.get('booking') == 'success' %}
+<div class="booking-success" role="status">
+    <strong>Gửi yêu cầu đặt lịch thành công!</strong>
+    <p>
+        Nha Khoa Thạnh Phú đã tiếp nhận yêu cầu của quý khách.
+        Nhân viên sẽ liên hệ qua số điện thoại đã cung cấp
+        để xác nhận lịch khám.
+    </p>
+    <p>
+        Lưu ý: Lịch khám chỉ có hiệu lực sau khi
+        được nhân viên xác nhận.
+    </p>
+</div>
+{% endif %}
+
+      <div class="booking-card">
+        <form action="/booking" method="post"
+              class="booking-form">
+<input type="hidden"
+       name="csrf_token"
+       value="{{ csrf_token }}">
+
+<div class="booking-honeypot" aria-hidden="true">
+    <label for="booking-website">Website</label>
+    <input
+        id="booking-website"
+        name="website"
+        type="text"
+        tabindex="-1"
+        autocomplete="off"
+    >
+</div>
+          <div class="booking-field">
+            <label for="booking-name">Họ và tên *</label>
+            <input id="booking-name"
+                   name="full_name"
+                   type="text"
+                   maxlength="150"
+                   autocomplete="name"
+                   required>
+          </div>
+
+          <div class="booking-field">
+            <label for="booking-phone">Số điện thoại *</label>
+            <input id="booking-phone"
+                   name="phone"
+                   type="tel"
+                   maxlength="30"
+                   autocomplete="tel"
+                   required>
+          </div>
+
+          <div class="booking-field">
+            <label for="booking-branch">Chọn chi nhánh *</label>
+            <select id="booking-branch"
+                    name="branch_id"
+                    required>
+              <option value="">-- Chọn cơ sở --</option>
+              {% for branch in branches %}
+              <option value="{{ branch.id }}">
+                {{ branch.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="booking-field">
+            <label for="booking-date">Ngày khám mong muốn *</label>
+            <input id="booking-date"
+                   name="preferred_date"
+                   type="date"
+                   required>
+          </div>
+
+          <div class="booking-field">
+            <label for="booking-time">Giờ khám mong muốn *</label>
+            <input id="booking-time"
+                   name="preferred_time"
+                   type="time"
+                   required>
+          </div>
+
+          <div class="booking-actions">
+            <p>
+              Thông tin chỉ dùng để liên hệ xác nhận
+              yêu cầu đặt lịch. Việc gửi form chưa
+              đồng nghĩa với lịch khám đã được xác nhận.
+            </p>
+            <button class="btn btn-primary" type="submit">
+              Gửi yêu cầu đặt lịch
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
   <section class="contact section" id="lien-he">
     <div class="container contact-inner">
       <div>

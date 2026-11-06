@@ -1,5 +1,6 @@
 import os, secrets, hashlib, hmac, html
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from decimal import Decimal
 from pathlib import Path
 from urllib.parse import quote
@@ -13,6 +14,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from .models import *
 
 ROOT=Path(__file__).resolve().parent.parent
+VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 DB_URL=os.getenv('DATABASE_URL',f'sqlite:///{ROOT / "dental.db"}')
 engine=create_engine(DB_URL,connect_args={'check_same_thread':False} if DB_URL.startswith('sqlite') else {},pool_pre_ping=True)
 SessionLocal=sessionmaker(bind=engine,expire_on_commit=False)
@@ -22,6 +24,12 @@ app.mount('/static',StaticFiles(directory=ROOT/'static'),name='static')
 templates=Jinja2Templates(directory=str(ROOT/'templates'))
 ROLES={'owner','manager','reception','doctor','cashier','inventory'}
 PERMISSIONS={'branches':{'owner'},'users':{'owner','manager'},'patients':{'owner','manager','reception','doctor'},'appointments':{'owner','manager','reception','doctor'},'services':{'owner','manager','reception'},'treatments':{'owner','manager','doctor'},'invoices':{'owner','manager','cashier'},'inventory':{'owner','manager','inventory'},'expenses':{'owner','manager','cashier'},'reminders':{'owner','manager','reception'},'pages':{'owner','manager'},'audit':{'owner','manager'}}
+
+PERMISSIONS['booking_requests'] = {
+    'owner',
+    'manager',
+    'reception',
+}
 
 def password_hash(p):
     salt=secrets.token_bytes(16); key=hashlib.pbkdf2_hmac('sha256',p.encode(),salt,260000)
@@ -57,7 +65,7 @@ def money(value): return f'{Decimal(value):,.0f} đ'
 def redirect(path): return RedirectResponse(path,status_code=303)
 def audit(s,user,action,entity,entity_id,bid=None): s.add(AuditLog(actor_id=user.id,branch_id=bid or user.branch_id,action=action,entity=entity,entity_id=entity_id))
 def page(title,body,request=None,user=None,active=''):
-    menu=[('dashboard','Tổng quan','/admin'),('patients','Bệnh nhân','/admin/patients'),('appointments','Lịch hẹn','/admin/appointments'),('treatments','Điều trị','/admin/treatments'),('services','Dịch vụ','/admin/services'),('invoices','Thu ngân','/admin/invoices'),('inventory','Kho vật tư','/admin/inventory'),('expenses','Chi phí','/admin/expenses'),('reminders','Tái khám','/admin/reminders'),('pages','Nội dung web','/admin/pages'),('users','Nhân viên','/admin/users'),('branches','Chi nhánh','/admin/branches'),('audit','Nhật ký','/admin/audit')]
+    menu=[('dashboard','Tổng quan','/admin'),('patients','Bệnh nhân','/admin/patients'),('appointments','Lịch hẹn','/admin/appointments'),('booking_requests','Yêu cầu đặt lịch','/admin/booking-requests'),('treatments','Điều trị','/admin/treatments'),('services','Dịch vụ','/admin/services'),('invoices','Thu ngân','/admin/invoices'),('inventory','Kho vật tư','/admin/inventory'),('expenses','Chi phí','/admin/expenses'),('reminders','Tái khám','/admin/reminders'),('pages','Nội dung web','/admin/pages'),('users','Nhân viên','/admin/users'),('branches','Chi nhánh','/admin/branches'),('audit','Nhật ký','/admin/audit')]
     nav=''; top=''
     if user:
         nav='<aside><div class="brand">✚ THẠNH PHÚ <small>DENTAL MANAGEMENT</small></div>'+''.join(f'<a class="{"selected" if active==k else ""}" href="{url}">{esc(label)}</a>' for k,label,url in menu if k=='dashboard' or user.role in PERMISSIONS.get(k,set()))+'</aside>'
@@ -85,6 +93,9 @@ def startup(): Base.metadata.create_all(engine)
 
 @app.get('/')
 def home(request: Request, s: Session = Depends(db)):
+    if 'csrf' not in request.session:
+        request.session['csrf'] = secrets.token_urlsafe(32)
+
     services = s.scalars(
         select(Service)
         .where(Service.active == True)
@@ -102,8 +113,115 @@ def home(request: Request, s: Session = Depends(db)):
         context={
             'services': services,
             'branches': branches,
+            'csrf_token': request.session['csrf'],
         },
     )
+
+@app.post('/booking')
+def submit_booking(
+    request: Request,
+    full_name: str = Form(...),
+    phone: str = Form(...),
+    branch_id: int = Form(...),
+    preferred_date: str = Form(...),
+    preferred_time: str = Form(...),
+    csrf_token: str = Form(...),
+    website: str = Form(''),
+    s: Session = Depends(db),
+):
+    # Kiem tra CSRF
+    csrf(request, csrf_token)
+
+    # Kiem tra honeypot
+    if website.strip():
+        raise HTTPException(
+            400, 'Yêu cầu không hợp lệ'
+        )
+
+
+    # Gioi han gui yeu cau trong moi phien
+    last_booking = request.session.get('last_booking_at')
+    current_time = datetime.now(timezone.utc).timestamp()
+
+    if last_booking is not None:
+        try:
+            elapsed = current_time - float(last_booking)
+        except (TypeError, ValueError):
+            elapsed = 0
+
+        if elapsed < 60:
+            raise HTTPException(
+                429,
+                'Vui lòng đợi 60 giây trước khi gửi yêu cầu tiếp theo'
+            )
+
+    # Kiem tra ho ten
+    full_name = ' '.join(full_name.split())
+    if not 2 <= len(full_name) <= 150:
+        raise HTTPException(
+            400, 'Họ tên phải có từ 2 đến 150 ký tự'
+        )
+
+    # Kiem tra so dien thoai Viet Nam
+    import re
+    phone = re.sub(r'[\s.\-()]', '', phone.strip())
+
+    if not re.fullmatch(r'(?:\+84|0)[35789]\d{8}', phone):
+        raise HTTPException(
+            400, 'Số điện thoại không hợp lệ'
+        )
+
+    # Kiem tra chi nhanh
+    branch = s.get(Branch, branch_id)
+    if not branch or not branch.active:
+        raise HTTPException(
+            400, 'Chi nhánh không hợp lệ'
+        )
+
+    # Kiem tra ngay gio kham theo gio Viet Nam
+    try:
+        local_dt = datetime.strptime(
+            preferred_date + ' ' + preferred_time,
+            '%Y-%m-%d %H:%M'
+        ).replace(tzinfo=VN_TZ)
+    except ValueError:
+        raise HTTPException(
+            400, 'Ngày giờ khám không hợp lệ'
+        )
+
+    now_vn = datetime.now(VN_TZ)
+
+    if local_dt <= now_vn:
+        raise HTTPException(
+            400, 'Vui lòng chọn thời gian trong tương lai'
+        )
+
+    if local_dt > now_vn + timedelta(days=90):
+        raise HTTPException(
+            400, 'Chỉ nhận lịch trong vòng 90 ngày'
+        )
+
+    # Luu thoi gian UTC dang naive
+    preferred_utc = local_dt.astimezone(
+        timezone.utc
+    ).replace(tzinfo=None)
+
+    booking = AppointmentRequest(
+        branch_id=branch.id,
+        full_name=full_name,
+        phone=phone,
+        preferred_at=preferred_utc,
+        status='pending',
+    )
+
+
+    s.add(booking)
+    s.commit()
+
+    request.session['last_booking_at'] = current_time
+
+    return redirect('/?booking=success#dat-lich')
+
 
 @app.get('/login')
 def login_form(request:Request):
@@ -117,6 +235,7 @@ def login(request:Request,username:str=Form(...),password:str=Form(...),csrf_tok
     if not u or not u.active or not verify_password(password,u.password_hash): return HTMLResponse('Sai tên đăng nhập hoặc mật khẩu. <a href="/login">Thử lại</a>',status_code=401)
     request.session.clear(); request.session['uid']=u.id; request.session['branch_id']=u.branch_id; request.session['csrf']=secrets.token_urlsafe(24)
     return redirect('/admin')
+
 @app.post('/logout')
 def logout(request:Request,csrf_token:str=Form(...)):
     csrf(request,csrf_token); request.session.clear(); return redirect('/login')
@@ -137,6 +256,114 @@ def switch_branch(request:Request,branch_id_value:int=Form(None,alias='branch_id
     csrf(request,csrf_token); u=require(request,s,'branches')
     if not s.get(Branch,branch_id_value): raise HTTPException(400,'Chi nhánh không tồn tại')
     request.session['branch_id']=branch_id_value; return redirect('/admin')
+
+@app.get('/admin/booking-requests')
+def booking_requests(request: Request, s: Session = Depends(db)):
+    u = require(request, s, 'booking_requests')
+    bid = branch_id(request, u)
+
+    requests = scoped(s, AppointmentRequest, bid)
+
+    rows = []
+    for item in requests:
+        vn_time = item.preferred_at.replace(
+            tzinfo=timezone.utc
+        ).astimezone(VN_TZ)
+
+
+        actions = 'Đã xử lý'
+
+        if item.status == 'pending':
+            token = esc(request.session['csrf'])
+            action_url = f'/admin/booking-requests/{item.id}/status'
+
+            actions = (
+                f'<form method="post" action="{action_url}">'
+                f'<input type="hidden" name="csrf_token" value="{token}">'
+                '<input type="hidden" name="status" value="confirmed">'
+                '<button type="submit">Xác nhận</button>'
+                '</form>'
+                f'<form method="post" action="{action_url}">'
+                f'<input type="hidden" name="csrf_token" value="{token}">'
+                '<input type="hidden" name="status" value="rejected">'
+                '<button type="submit" class="outline">Từ chối</button>'
+                '</form>'
+            )
+
+        rows.append((
+            item.id,
+            esc(item.full_name),
+            esc(item.phone),
+            esc(vn_time.strftime('%d/%m/%Y %H:%M')),
+            esc(item.status),
+            actions,
+        ))
+
+
+    content = (
+        '<h3>Danh sách yêu cầu đặt lịch trực tuyến</h3>'
+        '<p>Đây là yêu cầu chờ nhân viên liên hệ, '
+        'chưa phải lịch khám được xác nhận.</p>'
+    )
+
+
+    content += table(
+        [
+            'Mã',
+            'Họ tên',
+            'Số điện thoại',
+            'Ngày giờ mong muốn',
+            'Trạng thái',
+            'Thao tác',
+        ],
+        rows
+    )
+
+    return page(
+        'Yêu cầu đặt lịch',
+        content,
+        request,
+        u,
+        'booking_requests'
+    )
+
+@app.post('/admin/booking-requests/{request_id}/status')
+def update_booking_request_status(
+    request_id: int,
+    request: Request,
+    status: str = Form(...),
+    csrf_token: str = Form(...),
+    s: Session = Depends(db),
+):
+    csrf(request, csrf_token)
+    u = require(request, s, 'booking_requests')
+    bid = branch_id(request, u)
+
+    booking = s.get(AppointmentRequest, request_id)
+
+    if not booking or booking.branch_id != bid:
+        raise HTTPException(404, 'Không tìm thấy yêu cầu đặt lịch')
+
+    if status not in {'confirmed', 'rejected'}:
+        raise HTTPException(400, 'Trạng thái không hợp lệ')
+
+    if booking.status != 'pending':
+        raise HTTPException(409, 'Yêu cầu này đã được xử lý')
+
+    booking.status = status
+
+    audit(
+        s,
+        u,
+        'update_status',
+        'appointment_request',
+        booking.id,
+        bid
+    )
+
+    s.commit()
+
+    return redirect('/admin/booking-requests')
 
 @app.get('/admin/patients')
 def patients(request:Request,s:Session=Depends(db)):
