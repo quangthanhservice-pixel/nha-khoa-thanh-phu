@@ -1,0 +1,29 @@
+
+# Database and backups
+*.db
+*.db-shm
+*.db-wal
+backups/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+backups/
+
+# Temporary and backup files
+*.bak
+*.zip
+
+# Old extracted source folder
+thanh_phu_dental/

@@ -214,7 +214,37 @@ def add_item(request:Request,name:str=Form(...),sku:str=Form(...),unit:str=Form(
 def move_item(item_id:int,request:Request,delta:int=Form(...),csrf_token:str=Form(...),s:Session=Depends(db)):
     csrf(request,csrf_token); u=require(request,s,'inventory'); bid=branch_id(request,u); x=s.get(InventoryItem,item_id)
     if not x or x.branch_id!=bid: raise HTTPException(404,'Không tìm thấy vật tư')
-    if delta==0 or x.quantity+delta<0: raise HTTPException(400,'Số lượng không hợp lệ')
+    
+    if delta == 0 or x.quantity + delta < 0:
+        if delta < 0 and x.quantity + delta < 0:
+            title = "Không thể xuất kho"
+            message = "Số lượng yêu cầu vượt quá số lượng hiện có."
+        else:
+            title = "Số lượng không hợp lệ"
+            message = "Vui lòng nhập số lượng khác 0."
+
+        content = f"""
+        <section class="card" style="max-width:620px;margin:35px auto">
+            <h2 style="color:#a51f2e">⚠ {title}</h2>
+            <p>{message}</p>
+            <p><strong>Vật tư:</strong> {esc(x.name)}</p>
+            <p><strong>Tồn kho hiện tại:</strong>
+               {x.quantity} {esc(x.unit)}</p>
+            <p><strong>Số lượng yêu cầu xuất:</strong>
+               {abs(delta) if delta < 0 else 0} {esc(x.unit)}</p>
+            <p style="color:#16803c">
+                Dữ liệu tồn kho không thay đổi.
+            </p>
+            <a class="button" href="/admin/inventory">
+                Quay lại kho vật tư
+            </a>
+        </section>
+        """
+        response = page(
+            title, content, request, u, "inventory"
+        )
+        response.status_code = 400
+        return response
     x.quantity+=delta; s.add(StockMovement(branch_id=bid,item_id=x.id,delta=delta,reason='Điều chỉnh thủ công')); audit(s,u,'stock_move','inventory',x.id,bid); s.commit(); return redirect('/admin/inventory')
 
 @app.get('/admin/expenses')
@@ -263,8 +293,38 @@ def add_branch(request:Request,name:str=Form(...),address:str=Form(''),phone:str
 def users(request:Request,s:Session=Depends(db)):
     u=require(request,s,'users'); bid=branch_id(request,u); branches=s.scalars(select(Branch)).all()
     f=field('Tài khoản','username')+field('Họ tên','full_name')+field('Mật khẩu','password','password')+select_field('Vai trò','role',[(r,r) for r in sorted(ROLES)])+select_field('Chi nhánh','branch_id',[(b.id,b.name) for b in branches if u.role=='owner' or b.id==bid])
-    staff=s.scalars(select(User).where(User.branch_id==bid)).all()
-    return page('Nhân viên và phân quyền',card_form(request,'/admin/users',f)+table(['Tên đăng nhập','Họ tên','Vai trò','Chi nhánh'],[(esc(x.username),esc(x.full_name),esc(x.role),x.branch_id) for x in staff]),request,u,'users')
+    staff_query = select(User)
+
+    if u.role != 'owner':
+        staff_query = staff_query.where(User.branch_id == bid)
+
+    staff = s.scalars(
+        staff_query.order_by(User.id.desc())
+    ).all()
+
+    
+    branch_names = {b.id: b.name for b in branches}
+
+    rows = [
+        (
+            esc(x.username),
+            esc(x.full_name),
+            esc(x.role),
+            esc(branch_names.get(x.branch_id, "Không xác định"))
+        )
+        for x in staff
+    ]
+
+    return page(
+        'Nhân viên và phân quyền',
+        card_form(request, '/admin/users', f)
+        + table(
+            ['Tên đăng nhập', 'Họ tên', 'Vai trò', 'Chi nhánh'],
+            rows
+        ),
+        request, u, 'users'
+    )
+
 @app.post('/admin/users')
 def add_user(request:Request,username:str=Form(...),full_name:str=Form(...),password:str=Form(...),role:str=Form(...),branch_id_value:int=Form(...,alias='branch_id'),csrf_token:str=Form(...),s:Session=Depends(db)):
     csrf(request,csrf_token); u=require(request,s,'users')
