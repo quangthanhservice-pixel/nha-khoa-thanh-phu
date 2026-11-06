@@ -37,3 +37,33 @@ class ContentPage(Base):
     __tablename__='content_pages'; id=Column(Integer,primary_key=True); slug=Column(String(120),unique=True,nullable=False); title=Column(String(200),nullable=False); body=Column(Text,default=''); seo_description=Column(String(300),default=''); published=Column(Boolean,default=False)
 class AuditLog(Base):
     __tablename__='audit_logs'; id=Column(Integer,primary_key=True); actor_id=Column(Integer,ForeignKey('users.id')); branch_id=Column(Integer,ForeignKey('branches.id')); action=Column(String(100),nullable=False); entity=Column(String(100),nullable=False); entity_id=Column(Integer); created_at=Column(DateTime(timezone=True),default=now)
+class AppointmentRequest(Base):
+    __tablename__ = 'appointment_requests'
+
+    id = Column(Integer, primary_key=True)
+
+    branch_id = Column(
+        Integer,
+        ForeignKey('branches.id'),
+        nullable=False
+    )
+
+    full_name = Column(String(150), nullable=False)
+    phone = Column(String(30), nullable=False)
+
+    preferred_at = Column(
+        DateTime,
+        nullable=False
+    )
+
+    status = Column(
+        String(30),
+        nullable=False,
+        default='pending'
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        default=now,
+        nullable=False
+    )
