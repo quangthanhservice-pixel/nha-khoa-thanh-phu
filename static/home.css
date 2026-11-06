@@ -647,4 +647,41 @@ h2 { font-size: clamp(32px, 4vw, 48px); }
   .floating-label {
     display: none;
   }
+/* Nut chi duong Google Maps */
+
+.branch-directions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px 20px;
+  background: #831e30;
+  color: #ffffff;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.branch-directions:hover {
+  background: #641626;
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+.branch-directions:focus-visible {
+  outline: 3px solid #d8a85b;
+  outline-offset: 3px;
+}
+
+@media (max-width: 700px) {
+  .branch-directions {
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+  }
 }
