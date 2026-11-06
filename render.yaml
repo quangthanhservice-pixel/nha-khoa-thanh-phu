@@ -1,0 +1,17 @@
+# Blueprint demo. Configure DATABASE_URL and SESSION_SECRET in hosting dashboard.
+services:
+  - type: web
+    name: thanh-phu-dental-demo
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: '1'
+      - key: PYTHON_VERSION
+        value: '3.12.8'
