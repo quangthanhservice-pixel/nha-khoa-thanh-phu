@@ -410,15 +410,21 @@ def services(request:Request,s:Session=Depends(db)):
                 money(x.price),
                 f'{x.duration_minutes} phút',
                 (
-                    f'<a href="/admin/services/{x.id}/edit">Sửa</a> '
+                    f'<div class="service-actions">'
+                    f'<a class="service-action service-edit" href="/admin/services/{x.id}/edit">'
+                    f'<span aria-hidden="true">✎</span> Sửa</a>'
                     + form_open(
                         request,
                         f'/admin/services/{x.id}/toggle'
                     )
                     + (
-                        '<button type="submit">'
-                        + ('Ẩn' if x.active else 'Hiện')
-                        + '</button></form>'
+                        '<button class="service-action service-toggle '
+                        + ('is-active' if x.active else 'is-hidden')
+                        + '" type="submit">'
+                        + ('<span aria-hidden="true">◉</span> Ẩn'
+                           if x.active else
+                           '<span aria-hidden="true">◎</span> Hiện')
+                        + '</button></form></div>'
                     )
                 )
             )
