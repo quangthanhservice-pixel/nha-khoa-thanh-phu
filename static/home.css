@@ -568,3 +568,83 @@ h2 { font-size: clamp(32px, 4vw, 48px); }
   html { scroll-behavior: auto; }
   .btn, .service-card { transition: none; }
 }
+
+/* FLOATING HOTLINE & ZALO */
+
+.floating-contact {
+  position: fixed;
+  right: 22px;
+  bottom: 24px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.floating-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  transition: transform .2s ease;
+}
+
+.floating-btn:hover {
+  transform: translateY(-3px);
+}
+
+.floating-label {
+  padding: 10px 14px;
+  border-radius: 22px;
+  background: white;
+  color: #831e30;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 4px 20px rgba(0,0,0,.12);
+}
+
+.floating-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 22px;
+  font-weight: 700;
+  box-shadow: 0 5px 18px rgba(0,0,0,.18);
+}
+
+.floating-hotline .floating-icon {
+  background: #831e30;
+}
+
+.floating-zalo .floating-icon {
+  background: #0068ff;
+  font-size: 13px;
+}
+
+.floating-btn:focus-visible {
+  outline: 3px solid #e4a44e;
+  outline-offset: 4px;
+  border-radius: 30px;
+}
+
+@media (max-width: 700px) {
+  .floating-contact {
+    right: 12px;
+    bottom: 16px;
+    gap: 10px;
+  }
+
+  .floating-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .floating-label {
+    display: none;
+  }
+}

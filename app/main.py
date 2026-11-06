@@ -302,11 +302,103 @@ def public_page(slug:str,s:Session=Depends(db)):
 
 @app.get('/admin/branches')
 def branches(request:Request,s:Session=Depends(db)):
-    u=require(request,s,'branches'); f=field('Tên chi nhánh','name')+field('Địa chỉ','address',required=False)+field('Số điện thoại','phone',required=False)
-    return page('Quản lý chi nhánh',card_form(request,'/admin/branches',f)+table(['Mã','Chi nhánh','Địa chỉ','Điện thoại'],[(b.id,esc(b.name),esc(b.address),esc(b.phone)) for b in s.scalars(select(Branch)).all()]),request,u,'branches')
+    u=require(request,s,'branches')
+    f=(field('Tên chi nhánh','name')
+       +field('Địa chỉ','address',required=False)
+       +field('Số điện thoại','phone',required=False))
+
+    rows=[]
+    for b in s.scalars(select(Branch).order_by(Branch.id)).all():
+        edit_link=(
+            f'<a href="/admin/branches/{b.id}/edit">'
+            'Sửa</a>'
+        )
+        rows.append((
+            b.id,esc(b.name),esc(b.address),
+            esc(b.phone),edit_link
+        ))
+
+    return page(
+        'Quản lý chi nhánh',
+        card_form(request,'/admin/branches',f)
+        +table(
+            ['Mã','Chi nhánh','Địa chỉ','Điện thoại','Thao tác'],
+            rows
+        ),
+        request,u,'branches'
+    )
+
 @app.post('/admin/branches')
 def add_branch(request:Request,name:str=Form(...),address:str=Form(''),phone:str=Form(''),csrf_token:str=Form(...),s:Session=Depends(db)):
-    csrf(request,csrf_token); u=require(request,s,'branches'); b=Branch(name=name,address=address,phone=phone); s.add(b); s.flush(); audit(s,u,'create','branch',b.id); s.commit(); return redirect('/admin/branches')
+    csrf(request,csrf_token)
+    u=require(request,s,'branches')
+    b=Branch(name=name,address=address,phone=phone)
+    s.add(b)
+    s.flush()
+    audit(s,u,'create','branch',b.id)
+    s.commit()
+    return redirect('/admin/branches')
+
+@app.get('/admin/branches/{branch_id}/edit')
+def edit_branch_page(branch_id:int,request:Request,s:Session=Depends(db)):
+    u=require(request,s,'branches')
+    b=s.get(Branch,branch_id)
+    if not b:
+        raise HTTPException(404,'Không tìm thấy chi nhánh')
+
+    f=(
+        '<p><strong>Chi nhánh:</strong> '+esc(b.name)+'</p>'
+        +'<input type="hidden" name="branch_id" value="'+str(b.id)+'">'
+        +'<label>Tên chi nhánh'
+        +'<input name="name" required maxlength="150" value="'+esc(b.name)+'">'
+        +'</label>'
+        +'<label>Địa chỉ'
+        +'<input name="address" maxlength="500" value="'+esc(b.address or '')+'">'
+        +'</label>'
+        +'<label>Số điện thoại'
+        +'<input name="phone" maxlength="30" value="'+esc(b.phone or '')+'">'
+        +'</label>'
+    )
+
+    return page(
+        'Sửa chi nhánh',
+        card_form(request,f'/admin/branches/{b.id}/edit',f)
+        +'<p><a href="/admin/branches">← Quay lại danh sách</a></p>',
+        request,u,'branches'
+    )
+
+@app.post('/admin/branches/{branch_id}/edit')
+def update_branch(
+    branch_id:int,
+    request:Request,
+    name:str=Form(...),
+    address:str=Form(''),
+    phone:str=Form(''),
+    csrf_token:str=Form(...),
+    s:Session=Depends(db)
+):
+    csrf(request,csrf_token)
+    u=require(request,s,'branches')
+
+    b=s.get(Branch,branch_id)
+    if not b:
+        raise HTTPException(404,'Không tìm thấy chi nhánh')
+
+    name=name.strip()
+    address=address.strip()
+    phone=phone.strip()
+
+    if not name or len(name)>150 or len(address)>500 or len(phone)>30:
+        raise HTTPException(400,'Thông tin chi nhánh không hợp lệ')
+
+    b.name=name
+    b.address=address
+    b.phone=phone
+
+    audit(s,u,'update','branch',b.id)
+    s.commit()
+    return redirect('/admin/branches')
+
 @app.get('/admin/users')
 def users(request:Request,s:Session=Depends(db)):
     u=require(request,s,'users'); bid=branch_id(request,u); branches=s.scalars(select(Branch)).all()
