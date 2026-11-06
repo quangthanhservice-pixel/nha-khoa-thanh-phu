@@ -402,12 +402,138 @@ def add_appointment(request:Request,patient_id:int=Form(...),chair_id:int=Form(0
 
 @app.get('/admin/services')
 def services(request:Request,s:Session=Depends(db)):
-    u=require(request,s,'services'); content=card_form(request,'/admin/services',field('Tên dịch vụ','name')+field('Giá (VNĐ)','price','number',extra='min="0" step="1000"')+field('Số phút','duration_minutes','number',extra='min="1"'))+table(['Tên dịch vụ','Giá','Thời gian'],[(esc(x.name),money(x.price),f'{x.duration_minutes} phút') for x in s.scalars(select(Service).order_by(Service.id.desc())).all()]); return page('Bảng giá dịch vụ',content,request,u,'services')
+    u=require(request,s,'services'); content=card_form(request,'/admin/services',field('Tên dịch vụ','name')+field('Giá (VNĐ)','price','number',extra='min="0" step="1000"')+field('Số phút','duration_minutes','number',extra='min="1"'))+table(
+        ['Tên dịch vụ', 'Giá', 'Thời gian', 'Thao tác'],
+        [
+            (
+                esc(x.name),
+                money(x.price),
+                f'{x.duration_minutes} phút',
+                (
+                    f'<a href="/admin/services/{x.id}/edit">Sửa</a> '
+                    + form_open(
+                        request,
+                        f'/admin/services/{x.id}/toggle'
+                    )
+                    + (
+                        '<button type="submit">'
+                        + ('Ẩn' if x.active else 'Hiện')
+                        + '</button></form>'
+                    )
+                )
+            )
+            for x in s.scalars(
+                select(Service).order_by(Service.id.desc())
+            ).all()
+        ]
+    ); return page('Bảng giá dịch vụ',content,request,u,'services')
 @app.post('/admin/services')
 def add_service(request:Request,name:str=Form(...),price:Decimal=Form(...),duration_minutes:int=Form(30),csrf_token:str=Form(...),s:Session=Depends(db)):
     csrf(request,csrf_token); u=require(request,s,'services')
     if price<0 or duration_minutes<1: raise HTTPException(400,'Giá hoặc thời gian không hợp lệ')
     x=Service(name=name,price=price,duration_minutes=duration_minutes); s.add(x); s.flush(); audit(s,u,'create','service',x.id); s.commit(); return redirect('/admin/services')
+
+
+@app.get('/admin/services/{service_id}/edit')
+def edit_service_page(
+    service_id: int,
+    request: Request,
+    s: Session = Depends(db)
+):
+    u = require(request, s, 'services')
+    service = s.get(Service, service_id)
+
+    if not service:
+        raise HTTPException(404, 'Không tìm thấy dịch vụ')
+
+    fields = (
+        f'<label>Tên dịch vụ'
+        f'<input name="name" value="{esc(service.name)}" '
+        f'maxlength="150" required></label>'
+        f'<label>Giá (VNĐ)'
+        f'<input name="price" type="number" min="0" '
+        f'step="0.01" value="{esc(service.price)}" required></label>'
+        f'<label>Thời gian (phút)'
+        f'<input name="duration_minutes" type="number" min="1" '
+        f'value="{esc(service.duration_minutes)}" required></label>'
+    )
+
+    content = (
+        '<section class="card">'
+        '<h3>Chỉnh sửa dịch vụ</h3>'
+        + form_open(request, f'/admin/services/{service_id}/edit')
+        + '<div class="fields">' + fields + '</div>'
+        + '<button type="submit">Lưu thay đổi</button>'
+        + ' <a href="/admin/services">Quay lại</a>'
+        + '</form></section>'
+    )
+
+    return page('Sửa dịch vụ', content, request, u, 'services')
+
+
+@app.post('/admin/services/{service_id}/edit')
+def update_service(
+    service_id: int,
+    request: Request,
+    name: str = Form(...),
+    price: Decimal = Form(...),
+    duration_minutes: int = Form(...),
+    csrf_token: str = Form(...),
+    s: Session = Depends(db)
+):
+    csrf(request, csrf_token)
+    u = require(request, s, 'services')
+
+    service = s.get(Service, service_id)
+    if not service:
+        raise HTTPException(404, 'Không tìm thấy dịch vụ')
+
+    name = name.strip()
+
+    if not name or len(name) > 150:
+        raise HTTPException(400, 'Tên dịch vụ không hợp lệ')
+
+    if not price.is_finite() or price < 0 or duration_minutes < 1:
+        raise HTTPException(400, 'Giá hoặc thời gian không hợp lệ')
+
+    service.name = name
+    service.price = price
+    service.duration_minutes = duration_minutes
+
+    audit(s, u, 'update', 'service', service.id)
+    s.commit()
+
+    return redirect('/admin/services')
+
+
+
+@app.post('/admin/services/{service_id}/toggle')
+def toggle_service(
+    service_id: int,
+    request: Request,
+    csrf_token: str = Form(...),
+    s: Session = Depends(db)
+):
+    csrf(request, csrf_token)
+    u = require(request, s, 'services')
+
+    service = s.get(Service, service_id)
+    if not service:
+        raise HTTPException(404, 'Không tìm thấy dịch vụ')
+
+    service.active = not service.active
+
+    audit(
+        s,
+        u,
+        'activate' if service.active else 'deactivate',
+        'service',
+        service.id
+    )
+
+    s.commit()
+    return redirect('/admin/services')
+
 
 @app.get('/admin/treatments')
 def treatments(request:Request,s:Session=Depends(db)):
