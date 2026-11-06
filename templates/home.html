@@ -157,6 +157,22 @@
           </div>
           <h3>{{ branch.name }}</h3>
           <p>⌖ {{ branch.address or "Đang cập nhật địa chỉ" }}</p>
+
+{% if branch.id == 1 %}
+  <a class="branch-directions"
+     href="https://www.google.com/maps/dir/?api=1&amp;destination=10.3736389%2C106.3032222"
+     target="_blank"
+     rel="noopener noreferrer">
+    📍 Chỉ đường Google Maps
+  </a>
+{% elif branch.id == 2 %}
+  <a class="branch-directions"
+     href="https://www.google.com/maps/dir/?api=1&amp;destination=10.4052222%2C106.2113611"
+     target="_blank"
+     rel="noopener noreferrer">
+    📍 Chỉ đường Google Maps
+  </a>
+{% endif %}
           {% if branch.phone %}
           <p>☎ {{ branch.phone }}</p>
           <a class="branch-link" href="tel:{{ branch.phone }}">
