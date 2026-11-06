@@ -5,6 +5,7 @@ from pathlib import Path
 from urllib.parse import quote
 from fastapi import FastAPI, Request, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import create_engine, select, func
@@ -18,6 +19,7 @@ SessionLocal=sessionmaker(bind=engine,expire_on_commit=False)
 app=FastAPI(title='Nha Khoa Thạnh Phú')
 app.add_middleware(SessionMiddleware,secret_key=os.getenv('SESSION_SECRET',secrets.token_hex(32)),same_site='lax',https_only=os.getenv('COOKIE_SECURE','0')=='1')
 app.mount('/static',StaticFiles(directory=ROOT/'static'),name='static')
+templates=Jinja2Templates(directory=str(ROOT/'templates'))
 ROLES={'owner','manager','reception','doctor','cashier','inventory'}
 PERMISSIONS={'branches':{'owner'},'users':{'owner','manager'},'patients':{'owner','manager','reception','doctor'},'appointments':{'owner','manager','reception','doctor'},'services':{'owner','manager','reception'},'treatments':{'owner','manager','doctor'},'invoices':{'owner','manager','cashier'},'inventory':{'owner','manager','inventory'},'expenses':{'owner','manager','cashier'},'reminders':{'owner','manager','reception'},'pages':{'owner','manager'},'audit':{'owner','manager'}}
 
@@ -82,11 +84,27 @@ def admin_view(request,s,module,title,content):
 def startup(): Base.metadata.create_all(engine)
 
 @app.get('/')
-def home(s:Session=Depends(db)):
-    services=s.scalars(select(Service).where(Service.active==True).limit(8)).all()
-    cards=''.join(f'<article class="card"><h3>{esc(x.name)}</h3><p class="red">{money(x.price)}</p></article>' for x in services)
-    body='<div class="publicnav"><strong>✚ NHA KHOA THẠNH PHÚ</strong><a href="/login">Đăng nhập quản trị</a></div><section class="hero"><h1>Nụ cười khỏe đẹp, chăm sóc tận tâm</h1><p>Hệ thống nha khoa Thạnh Phú · Đặt lịch tư vấn trực tiếp tại phòng khám.</p><a class="button" href="#branches">Xem chi nhánh</a></section><h2>Dịch vụ nha khoa</h2><div class="cards">'+cards+'</div><h2 id="branches">Các chi nhánh</h2><div class="cards">'+''.join(f'<div class="card"><h3>{esc(b.name)}</h3><p>{esc(b.address)}</p><p>{esc(b.phone)}</p></div>' for b in s.scalars(select(Branch).where(Branch.active==True)).all())+'</div>'
-    return page('Trang chủ',body)
+def home(request: Request, s: Session = Depends(db)):
+    services = s.scalars(
+        select(Service)
+        .where(Service.active == True)
+        .limit(8)
+    ).all()
+
+    branches = s.scalars(
+        select(Branch)
+        .where(Branch.active == True)
+    ).all()
+
+    return templates.TemplateResponse(
+        request=request,
+        name='home.html',
+        context={
+            'services': services,
+            'branches': branches,
+        },
+    )
+
 @app.get('/login')
 def login_form(request:Request):
     if 'csrf' not in request.session: request.session['csrf']=secrets.token_urlsafe(24)
