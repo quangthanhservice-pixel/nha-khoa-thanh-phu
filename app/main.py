@@ -32,6 +32,7 @@ PERMISSIONS['booking_requests'] = {
 }
 
 PERMISSIONS['customer_reviews'] = {'owner', 'manager'}
+PERMISSIONS['homepage_content'] = {'owner', 'manager'}
 
 def password_hash(p):
     salt=secrets.token_bytes(16); key=hashlib.pbkdf2_hmac('sha256',p.encode(),salt,260000)
@@ -67,7 +68,7 @@ def money(value): return f'{Decimal(value):,.0f} đ'
 def redirect(path): return RedirectResponse(path,status_code=303)
 def audit(s,user,action,entity,entity_id,bid=None): s.add(AuditLog(actor_id=user.id,branch_id=bid or user.branch_id,action=action,entity=entity,entity_id=entity_id))
 def page(title,body,request=None,user=None,active=''):
-    menu=[('dashboard','Tổng quan','/admin'),('patients','Bệnh nhân','/admin/patients'),('appointments','Lịch hẹn','/admin/appointments'),('booking_requests','Yêu cầu đặt lịch','/admin/booking-requests'),('treatments','Điều trị','/admin/treatments'),('services','Dịch vụ','/admin/services'),('invoices','Thu ngân','/admin/invoices'),('inventory','Kho vật tư','/admin/inventory'),('expenses','Chi phí','/admin/expenses'),('reminders','Tái khám','/admin/reminders'),('pages','Nội dung web','/admin/pages'),('customer_reviews','Cảm nhận khách hàng','/admin/customer-reviews'),('users','Nhân viên','/admin/users'),('branches','Chi nhánh','/admin/branches'),('audit','Nhật ký','/admin/audit')]
+    menu=[('dashboard','Tổng quan','/admin'),('patients','Bệnh nhân','/admin/patients'),('appointments','Lịch hẹn','/admin/appointments'),('booking_requests','Yêu cầu đặt lịch','/admin/booking-requests'),('treatments','Điều trị','/admin/treatments'),('services','Dịch vụ','/admin/services'),('invoices','Thu ngân','/admin/invoices'),('inventory','Kho vật tư','/admin/inventory'),('expenses','Chi phí','/admin/expenses'),('reminders','Tái khám','/admin/reminders'),('pages','Nội dung web','/admin/pages'),('customer_reviews','Cảm nhận khách hàng','/admin/customer-reviews'),('homepage_content','Trang chủ: Hành trình & Bác sĩ','/admin/homepage-content'),('users','Nhân viên','/admin/users'),('branches','Chi nhánh','/admin/branches'),('audit','Nhật ký','/admin/audit')]
     nav=''; top=''
     if user:
         nav='<aside><div class="brand">✚ THẠNH PHÚ <small>DENTAL MANAGEMENT</small></div>'+''.join(f'<a class="{"selected" if active==k else ""}" href="{url}">{esc(label)}</a>' for k,label,url in menu if k=='dashboard' or user.role in PERMISSIONS.get(k,set()))+'</aside>'
@@ -109,6 +110,9 @@ def home(request: Request, s: Session = Depends(db)):
         .where(Branch.active == True)
     ).all()
 
+    homepage_stats = s.scalars(select(HomepageStat).where(HomepageStat.active.is_(True)).order_by(HomepageStat.sort_order, HomepageStat.id)).all()
+    doctors = s.scalars(select(DoctorProfile).where(DoctorProfile.active.is_(True)).order_by(DoctorProfile.sort_order, DoctorProfile.id)).all()
+
     reviews = s.scalars(
         select(CustomerReview)
         .where(CustomerReview.active.is_(True))
@@ -121,6 +125,9 @@ def home(request: Request, s: Session = Depends(db)):
         name='home.html',
         context={
             'reviews': reviews,
+            'homepage_stats': homepage_stats,
+            'doctors': doctors,
+            'clinic_photo_url': '',
             'services': services,
             'branches': branches,
             'csrf_token': request.session['csrf'],
@@ -1131,3 +1138,90 @@ def toggle_customer_review(
     s.commit()
 
     return redirect('/admin/customer-reviews')
+
+
+# HOMEPAGE CONTENT MANAGEMENT
+@app.get('/admin/homepage-content')
+def homepage_content_admin(request: Request, s: Session = Depends(db)):
+    u = require(request, s, 'homepage_content')
+    stats = s.scalars(select(HomepageStat).order_by(HomepageStat.sort_order, HomepageStat.id)).all()
+    doctors = s.scalars(select(DoctorProfile).order_by(DoctorProfile.sort_order, DoctorProfile.id)).all()
+    stat_fields = field('Giá trị thống kê', 'value') + field('Nhãn', 'label') + field('Biểu tượng', 'icon', required=False) + field('Thứ tự', 'sort_order', 'number', extra='min="0" value="0"')
+    content = '<h3>Hành trình phát triển – thêm chỉ số</h3>' + card_form(request, '/admin/homepage-content/stats', stat_fields, 'Thêm chỉ số')
+    stat_rows = []
+    for x in stats:
+        actions = f'<a href="/admin/homepage-content/stats/{x.id}/edit">Sửa</a> ' + form_open(request, f'/admin/homepage-content/stats/{x.id}/toggle') + '<button>' + ('Ẩn' if x.active else 'Hiện') + '</button></form>'
+        stat_rows.append((x.id, esc(x.value), esc(x.label), esc(x.sort_order), 'Hiện' if x.active else 'Ẩn', actions))
+    content += table(['ID','Giá trị','Nhãn','Thứ tự','Trạng thái','Thao tác'], stat_rows)
+    doctor_fields = field('Họ và tên', 'full_name') + field('Chức danh', 'title', required=False) + field('Chuyên khoa', 'specialty', required=False) + field('Bằng cấp', 'qualifications', required=False) + field('Kinh nghiệm', 'experience', required=False) + '<label>Giới thiệu<textarea name="bio" rows="3"></textarea></label>' + field('Thứ tự hiển thị', 'sort_order', 'number', extra='min="0" value="0"')
+    content += '<h3>Đội ngũ chuyên môn – thêm bác sĩ</h3>' + card_form(request, '/admin/homepage-content/doctors', doctor_fields, 'Thêm bác sĩ')
+    rows = []
+    for d in doctors:
+        photo = f'<img src="{esc(d.photo_url)}" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:10px">' if d.photo_url else 'Chưa có ảnh'
+        actions = f'<a href="/admin/homepage-content/doctors/{d.id}/edit">Sửa</a> ' + form_open(request, f'/admin/homepage-content/doctors/{d.id}/toggle') + '<button>' + ('Ẩn' if d.active else 'Hiện') + '</button></form>'
+        rows.append((d.id, photo, esc(d.full_name), esc(d.specialty), 'Hiện' if d.active else 'Ẩn', actions))
+    content += table(['ID','Ảnh','Bác sĩ','Chuyên khoa','Trạng thái','Thao tác'], rows)
+    return page('Quản lý nội dung trang chủ', content, request, u, 'homepage_content')
+
+@app.post('/admin/homepage-content/stats')
+def create_homepage_stat(request: Request, value: str = Form(...), label: str = Form(...), icon: str = Form('✦'), sort_order: int = Form(0), csrf_token: str = Form(...), s: Session = Depends(db)):
+    csrf(request, csrf_token); u = require(request, s, 'homepage_content')
+    if not value.strip() or not label.strip() or len(value)>80 or len(label)>180 or sort_order<0: raise HTTPException(400, 'Thông tin thống kê không hợp lệ')
+    x=HomepageStat(value=value.strip(),label=label.strip(),icon=icon[:30],sort_order=sort_order); s.add(x); s.flush(); audit(s,u,'create','homepage_stat',x.id); s.commit(); return redirect('/admin/homepage-content')
+
+@app.get('/admin/homepage-content/stats/{item_id}/edit')
+def edit_homepage_stat(item_id: int, request: Request, s: Session = Depends(db)):
+    u=require(request,s,'homepage_content'); x=s.get(HomepageStat,item_id)
+    if not x: raise HTTPException(404,'Không tìm thấy chỉ số')
+    fields=field('Giá trị','value',extra=f'value="{esc(x.value)}"')+field('Nhãn','label',extra=f'value="{esc(x.label)}"')+field('Biểu tượng','icon',required=False,extra=f'value="{esc(x.icon or "")}"')+field('Thứ tự','sort_order','number',extra=f'min="0" value="{x.sort_order}"')
+    return page('Sửa chỉ số',card_form(request,f'/admin/homepage-content/stats/{item_id}/edit',fields),request,u,'homepage_content')
+
+@app.post('/admin/homepage-content/stats/{item_id}/edit')
+def update_homepage_stat(item_id:int,request:Request,value:str=Form(...),label:str=Form(...),icon:str=Form('✦'),sort_order:int=Form(0),csrf_token:str=Form(...),s:Session=Depends(db)):
+    csrf(request,csrf_token);u=require(request,s,'homepage_content');x=s.get(HomepageStat,item_id)
+    if not x: raise HTTPException(404,'Không tìm thấy chỉ số')
+    if not value.strip() or not label.strip() or len(value)>80 or len(label)>180 or sort_order<0: raise HTTPException(400,'Thông tin không hợp lệ')
+    x.value=value.strip();x.label=label.strip();x.icon=icon[:30];x.sort_order=sort_order;audit(s,u,'update','homepage_stat',x.id);s.commit();return redirect('/admin/homepage-content')
+
+@app.post('/admin/homepage-content/stats/{item_id}/toggle')
+def toggle_homepage_stat(item_id:int,request:Request,csrf_token:str=Form(...),s:Session=Depends(db)):
+    csrf(request,csrf_token);u=require(request,s,'homepage_content');x=s.get(HomepageStat,item_id)
+    if not x: raise HTTPException(404)
+    x.active=not x.active;audit(s,u,'toggle','homepage_stat',x.id);s.commit();return redirect('/admin/homepage-content')
+
+@app.post('/admin/homepage-content/doctors')
+async def create_doctor(request:Request,full_name:str=Form(...),title:str=Form('Bác sĩ'),specialty:str=Form(''),qualifications:str=Form(''),experience:str=Form(''),bio:str=Form(''),sort_order:int=Form(0),csrf_token:str=Form(...),s:Session=Depends(db)):
+    csrf(request,csrf_token);u=require(request,s,'homepage_content')
+    vals=[full_name,title,specialty,qualifications,experience,bio]
+    if not full_name.strip() or len(full_name)>150 or any(len(v)>3000 for v in vals) or sort_order<0: raise HTTPException(400,'Thông tin bác sĩ không hợp lệ')
+    d=DoctorProfile(full_name=full_name.strip(),title=title.strip(),specialty=specialty.strip(),qualifications=qualifications.strip(),experience=experience.strip(),bio=bio.strip(),sort_order=sort_order)
+    s.add(d);s.flush();audit(s,u,'create','doctor_profile',d.id);s.commit();return redirect('/admin/homepage-content')
+
+@app.get('/admin/homepage-content/doctors/{doctor_id}/edit')
+def edit_doctor(doctor_id:int,request:Request,s:Session=Depends(db)):
+    u=require(request,s,'homepage_content');d=s.get(DoctorProfile,doctor_id)
+    if not d: raise HTTPException(404,'Không tìm thấy bác sĩ')
+    fields=field('Họ và tên','full_name',extra=f'value="{esc(d.full_name)}"')+field('Chức danh','title',required=False,extra=f'value="{esc(d.title)}"')+field('Chuyên khoa','specialty',required=False,extra=f'value="{esc(d.specialty)}"')+field('Bằng cấp','qualifications',required=False,extra=f'value="{esc(d.qualifications)}"')+field('Kinh nghiệm','experience',required=False,extra=f'value="{esc(d.experience)}"')+f'<label>Giới thiệu<textarea name="bio" rows="4">{esc(d.bio)}</textarea></label>'+field('Thứ tự hiển thị','sort_order','number',extra=f'min="0" value="{d.sort_order}"')+'<label>Ảnh chân dung<input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></label>'
+    content='<section class="card"><h3>Chỉnh sửa hồ sơ bác sĩ</h3>'+form_open(request,f'/admin/homepage-content/doctors/{doctor_id}/edit').replace('<form method="post"','<form enctype="multipart/form-data" method="post"',1)
+    if d.photo_url: content+=f'<img src="{esc(d.photo_url)}" alt="Ảnh bác sĩ hiện tại" style="width:120px;height:140px;object-fit:cover;border-radius:12px">'
+    content+='<div class="fields">'+fields+'</div><button>Lưu thay đổi</button></form></section><p><a href="/admin/homepage-content">← Quay lại</a></p>'
+    return page('Sửa hồ sơ bác sĩ',content,request,u,'homepage_content')
+
+@app.post('/admin/homepage-content/doctors/{doctor_id}/edit')
+async def update_doctor(doctor_id:int,request:Request,full_name:str=Form(...),title:str=Form('Bác sĩ'),specialty:str=Form(''),qualifications:str=Form(''),experience:str=Form(''),bio:str=Form(''),sort_order:int=Form(0),photo:UploadFile=File(None),csrf_token:str=Form(...),s:Session=Depends(db)):
+    from .cloudinary_storage import upload_validated_image
+    csrf(request,csrf_token);u=require(request,s,'homepage_content');d=s.get(DoctorProfile,doctor_id)
+    if not d: raise HTTPException(404,'Không tìm thấy bác sĩ')
+    if not full_name.strip() or len(full_name)>150 or sort_order<0: raise HTTPException(400,'Thông tin bác sĩ không hợp lệ')
+    new_url=d.photo_url;new_pid=d.photo_public_id
+    if photo and photo.filename:
+        data=await photo.read()
+        new_url,new_pid=upload_validated_image(data,photo.filename,folder='nha-khoa-thanh-phu/doctors')
+    d.full_name=full_name.strip();d.title=title.strip();d.specialty=specialty.strip();d.qualifications=qualifications.strip();d.experience=experience.strip();d.bio=bio.strip();d.sort_order=sort_order;d.photo_url=new_url;d.photo_public_id=new_pid
+    audit(s,u,'update','doctor_profile',d.id);s.commit();return redirect('/admin/homepage-content')
+
+@app.post('/admin/homepage-content/doctors/{doctor_id}/toggle')
+def toggle_doctor(doctor_id:int,request:Request,csrf_token:str=Form(...),s:Session=Depends(db)):
+    csrf(request,csrf_token);u=require(request,s,'homepage_content');d=s.get(DoctorProfile,doctor_id)
+    if not d: raise HTTPException(404)
+    d.active=not d.active;audit(s,u,'toggle','doctor_profile',d.id);s.commit();return redirect('/admin/homepage-content')

@@ -59,31 +59,26 @@ def delete_customer_avatar(public_id):
 MAX_AVATAR_BYTES = 5 * 1024 * 1024
 
 
-def upload_validated_customer_avatar(data, filename=""):
+def upload_validated_image(data, filename="", folder="nha-khoa-thanh-phu/customer-reviews"):
     from fastapi import HTTPException
     from io import BytesIO
-
     if not data:
         raise HTTPException(400, "Bạn chưa chọn ảnh")
-
     if len(data) > MAX_AVATAR_BYTES:
         raise HTTPException(400, "Ảnh không được vượt quá 5 MB")
-
-    signatures = (
-        data.startswith(bytes.fromhex("FFD8FF")),
-        data.startswith(bytes.fromhex("89504E470D0A1A0A")),
-        data.startswith(b"RIFF")
-        and data[8:12] == b"WEBP",
-    )
-
+    signatures = (data.startswith(bytes.fromhex("FFD8FF")),data.startswith(bytes.fromhex("89504E470D0A1A0A")),data.startswith(b"RIFF") and data[8:12] == b"WEBP")
     if not any(signatures):
-        raise HTTPException(
-            400, "Chỉ hỗ trợ ảnh JPG, PNG hoặc WebP"
-        )
-
+        raise HTTPException(400, "Chỉ hỗ trợ ảnh JPG, PNG hoặc WebP")
     try:
-        return upload_customer_avatar(BytesIO(data))
+        configure_cloudinary()
+        result = cloudinary.uploader.upload(BytesIO(data), folder=folder, resource_type="image", overwrite=False)
+        return result["secure_url"], result["public_id"]
+    except HTTPException:
+        raise
     except Exception:
-        raise HTTPException(
-            502, "Không thể tải ảnh lên Cloudinary"
-        )
+        raise HTTPException(502, "Không thể tải ảnh lên Cloudinary")
+
+
+def upload_validated_customer_avatar(data, filename=""):
+    return upload_validated_image(data, filename, "nha-khoa-thanh-phu/customer-reviews")
+

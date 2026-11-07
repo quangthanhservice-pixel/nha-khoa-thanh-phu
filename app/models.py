@@ -81,3 +81,28 @@ class CustomerReview(Base):
     sort_order = Column(Integer, nullable=False, default=0)
     active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), default=now)
+
+
+class HomepageStat(Base):
+    __tablename__ = 'homepage_stats'
+    id = Column(Integer, primary_key=True)
+    value = Column(String(80), nullable=False)
+    label = Column(String(180), nullable=False)
+    icon = Column(String(30), default='✦')
+    sort_order = Column(Integer, nullable=False, default=0)
+    active = Column(Boolean, nullable=False, default=True)
+
+
+class DoctorProfile(Base):
+    __tablename__ = 'doctor_profiles'
+    id = Column(Integer, primary_key=True)
+    full_name = Column(String(150), nullable=False)
+    title = Column(String(150), default='Bác sĩ')
+    specialty = Column(String(180), default='')
+    qualifications = Column(String(250), default='')
+    experience = Column(String(250), default='')
+    bio = Column(Text, default='')
+    photo_url = Column(String(500), default='')
+    photo_public_id = Column(String(255), default='')
+    sort_order = Column(Integer, nullable=False, default=0)
+    active = Column(Boolean, nullable=False, default=True)
