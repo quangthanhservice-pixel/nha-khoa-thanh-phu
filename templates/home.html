@@ -98,58 +98,21 @@
     <div class="showcase-heading stats-premium-heading">
       <span class="stats-eyebrow">✦ HÀNH TRÌNH PHÁT TRIỂN</span>
       <h2>Nha Khoa Thạnh Phú qua <em>những con số</em></h2>
-      <p>Những dấu mốc quan trọng trong hành trình mang đến
-      nụ cười khỏe đẹp và sự hài lòng cho khách hàng.</p>
+      <p>Những dấu mốc quan trọng trong hành trình mang đến nụ cười khỏe đẹp và sự hài lòng cho khách hàng.</p>
     </div>
-
     <div class="stats-premium-layout">
-      <div class="stats-clinic-visual">
-        <div class="stats-clinic-photo" role="img"
-             aria-label="Hình ảnh phòng khám đang cập nhật">
-          <span class="stats-photo-icon" aria-hidden="true">✚</span>
-          <span>Hình ảnh phòng khám đang cập nhật</span>
-        </div>
-      </div>
-
       <div class="stats-premium-grid">
+        {% for stat in homepage_stats %}
         <article class="stats-premium-card">
-          <div class="stats-premium-icon" aria-hidden="true">▦</div>
-          <div>
-            <strong>—</strong>
-            <span>Năm kinh nghiệm hoạt động</span>
-          </div>
+          <div class="stats-premium-icon" aria-hidden="true">{{ stat.icon }}</div>
+          <div><strong>{{ stat.value }}</strong><span>{{ stat.label }}</span></div>
         </article>
-
-        <article class="stats-premium-card">
-          <div class="stats-premium-icon" aria-hidden="true">♡</div>
-          <div>
-            <strong>—</strong>
-            <span>Khách hàng đã phục vụ</span>
-          </div>
-        </article>
-
-        <article class="stats-premium-card">
-          <div class="stats-premium-icon" aria-hidden="true">✚</div>
-          <div>
-            <strong>—</strong>
-            <span>Bác sĩ và nhân viên</span>
-          </div>
-        </article>
-
-        <article class="stats-premium-card">
-          <div class="stats-premium-icon" aria-hidden="true">⌖</div>
-          <div>
-            <strong>2</strong>
-            <span>Chi nhánh hoạt động</span>
-          </div>
-        </article>
+        {% else %}<p>Thông tin hành trình đang được cập nhật.</p>{% endfor %}
       </div>
     </div>
   </div>
   <div class="stats-bottom-wave" aria-hidden="true"></div>
 </section>
-
-<!-- DOI NGU BAC SI -->
 <section class="showcase-section doctors-section" id="doi-ngu-bac-si">
   <div class="container">
     <div class="showcase-heading">
@@ -158,19 +121,21 @@
       <p>Đội ngũ bác sĩ tại Nha Khoa Thạnh Phú.</p>
     </div>
     <div class="doctors-grid">
-      {% for number in range(1, 5) %}
+      {% for doctor in doctors %}
       <article class="doctor-card">
         <div class="doctor-photo">
-          <span aria-hidden="true">✚</span>
-          <p>Ảnh bác sĩ đang cập nhật</p>
+          {% if doctor.photo_url %}<img src="{{ doctor.photo_url }}" alt="{{ doctor.full_name }}" loading="lazy" style="width:100%;height:100%;object-fit:cover">{% else %}<span aria-hidden="true">✚</span><p>Ảnh bác sĩ đang cập nhật</p>{% endif %}
         </div>
         <div class="doctor-info">
-          <span class="doctor-label">ĐỘI NGŨ NHA KHOA</span>
-          <h3>Thông tin bác sĩ đang cập nhật</h3>
-          <p>Chuyên môn và hồ sơ sẽ được bổ sung.</p>
+          <span class="doctor-label">{{ doctor.title }}</span>
+          <h3>{{ doctor.full_name }}</h3>
+          {% if doctor.specialty %}<p><strong>Chuyên khoa:</strong> {{ doctor.specialty }}</p>{% endif %}
+          {% if doctor.qualifications %}<p>{{ doctor.qualifications }}</p>{% endif %}
+          {% if doctor.experience %}<p>{{ doctor.experience }}</p>{% endif %}
+          {% if doctor.bio %}<p>{{ doctor.bio }}</p>{% endif %}
         </div>
       </article>
-      {% endfor %}
+      {% else %}<p>Đội ngũ chuyên môn đang được cập nhật.</p>{% endfor %}
     </div>
   </div>
 </section>
