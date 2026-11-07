@@ -1209,14 +1209,14 @@ def edit_doctor(doctor_id:int,request:Request,s:Session=Depends(db)):
 
 @app.post('/admin/homepage-content/doctors/{doctor_id}/edit')
 async def update_doctor(doctor_id:int,request:Request,full_name:str=Form(...),title:str=Form('Bác sĩ'),specialty:str=Form(''),qualifications:str=Form(''),experience:str=Form(''),bio:str=Form(''),sort_order:int=Form(0),photo:UploadFile=File(None),csrf_token:str=Form(...),s:Session=Depends(db)):
-    from .cloudinary_storage import upload_validated_customer_avatar
+    from .cloudinary_storage import upload_validated_image
     csrf(request,csrf_token);u=require(request,s,'homepage_content');d=s.get(DoctorProfile,doctor_id)
     if not d: raise HTTPException(404,'Không tìm thấy bác sĩ')
     if not full_name.strip() or len(full_name)>150 or sort_order<0: raise HTTPException(400,'Thông tin bác sĩ không hợp lệ')
     new_url=d.photo_url;new_pid=d.photo_public_id
     if photo and photo.filename:
         data=await photo.read()
-        new_url,new_pid=upload_validated_customer_avatar(data,photo.filename,folder='nha-khoa-thanh-phu/doctors')
+        new_url,new_pid=upload_validated_image(data,photo.filename,folder='nha-khoa-thanh-phu/doctors')
     d.full_name=full_name.strip();d.title=title.strip();d.specialty=specialty.strip();d.qualifications=qualifications.strip();d.experience=experience.strip();d.bio=bio.strip();d.sort_order=sort_order;d.photo_url=new_url;d.photo_public_id=new_pid
     audit(s,u,'update','doctor_profile',d.id);s.commit();return redirect('/admin/homepage-content')
 
