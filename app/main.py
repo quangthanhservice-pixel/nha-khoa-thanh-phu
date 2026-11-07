@@ -1149,11 +1149,8 @@ def homepage_content_admin(request: Request, s: Session = Depends(db)):
     visual = s.get(HomepageVisual, 1)
     visual_photo = f'<img src="{esc(visual.photo_url)}" alt="Ảnh hiện tại" style="width:180px;height:120px;object-fit:cover;border-radius:12px;margin:8px 0">' if visual and visual.photo_url else '<p>Chưa có ảnh. Khối bên trái sẽ hiển thị ảnh mặc định cho đến khi tải ảnh lên.</p>'
     visual_form = '<section class="card"><h3>Ảnh khối Hành trình phát triển</h3>' + visual_photo + form_open(request, '/admin/homepage-content/visual').replace('<form method="post"', '<form enctype="multipart/form-data" method="post"', 1) + '<label>Chọn ảnh (JPG, PNG hoặc WebP, tối đa 5 MB)<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></label><button>Cập nhật ảnh</button></form></section>'
+    stat_fields = field('Giá trị thống kê', 'value') + field('Nhãn', 'label') + field('Biểu tượng', 'icon', required=False) + field('Thứ tự', 'sort_order', 'number', extra='min="0" value="0"')
     content = visual_form + '<h3>Hành trình phát triển – thêm chỉ số</h3>' + card_form(request, '/admin/homepage-content/stats', stat_fields, 'Thêm chỉ số')
-    stat_rows = []
-    for x in stats:
-        actions = (
-            '<div class="service-actions">' + field('Nhãn', 'label') + field('Biểu tượng', 'icon', required=False) + field('Thứ tự', 'sort_order', 'number', extra='min="0" value="0"')
     stat_rows = []
     for x in stats:
         actions = (
@@ -1184,6 +1181,7 @@ def homepage_content_admin(request: Request, s: Session = Depends(db)):
         rows.append((d.id, photo, esc(d.full_name), esc(d.specialty), 'Hiện' if d.active else 'Ẩn', actions))
     content += table(['ID','Ảnh','Bác sĩ','Chuyên khoa','Trạng thái','Thao tác'], rows)
     return page('Quản lý nội dung trang chủ', content, request, u, 'homepage_content')
+
 
 @app.get('/admin/homepage-content/preview')
 def preview_homepage_content(request: Request, s: Session = Depends(db)):
