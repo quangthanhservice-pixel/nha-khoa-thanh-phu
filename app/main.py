@@ -1153,6 +1153,7 @@ def homepage_content_admin(request: Request, s: Session = Depends(db)):
         actions = f'<a href="/admin/homepage-content/stats/{x.id}/edit">Sửa</a> ' + form_open(request, f'/admin/homepage-content/stats/{x.id}/toggle') + '<button>' + ('Ẩn' if x.active else 'Hiện') + '</button></form> ' + form_open(request, f'/admin/homepage-content/stats/{x.id}/delete').replace('<form method="post"', '<form method="post" onsubmit="return confirm(\'Xóa chỉ số này?\')"') + '<button class="btn-danger">Xóa</button></form>'
         stat_rows.append((x.id, esc(x.value), esc(x.label), esc(x.sort_order), 'Hiện' if x.active else 'Ẩn', actions))
     content += table(['ID','Giá trị','Nhãn','Thứ tự','Trạng thái','Thao tác'], stat_rows)
+    content += '<p><a class="button" href="/admin/homepage-content/preview" target="_blank" rel="noopener">Xem trước trang chủ ↗</a></p>'
     doctor_fields = '<label>Ảnh chân dung<input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></label>' + field('Họ và tên', 'full_name') + field('Chức danh', 'title', required=False) + field('Chuyên khoa', 'specialty', required=False) + field('Bằng cấp', 'qualifications', required=False) + field('Kinh nghiệm', 'experience', required=False) + '<label>Giới thiệu<textarea name="bio" rows="3"></textarea></label>' + field('Thứ tự hiển thị', 'sort_order', 'number', extra='min="0" value="0"')
     doctor_form = '<section class="card"><h3>Thêm bác sĩ</h3>' + form_open(request, '/admin/homepage-content/doctors').replace('<form method="post"', '<form enctype="multipart/form-data" method="post"', 1) + '<div class="fields">' + doctor_fields + '</div><button>Thêm bác sĩ</button></form></section>'
     content += '<h3>Đội ngũ chuyên môn – thêm bác sĩ</h3>' + doctor_form
@@ -1163,6 +1164,23 @@ def homepage_content_admin(request: Request, s: Session = Depends(db)):
         rows.append((d.id, photo, esc(d.full_name), esc(d.specialty), 'Hiện' if d.active else 'Ẩn', actions))
     content += table(['ID','Ảnh','Bác sĩ','Chuyên khoa','Trạng thái','Thao tác'], rows)
     return page('Quản lý nội dung trang chủ', content, request, u, 'homepage_content')
+
+@app.get('/admin/homepage-content/preview')
+def preview_homepage_content(request: Request, s: Session = Depends(db)):
+    require(request, s, 'homepage_content')
+    if 'csrf' not in request.session:
+        request.session['csrf'] = secrets.token_urlsafe(32)
+    services = s.scalars(select(Service).where(Service.active == True).limit(8)).all()
+    branches = s.scalars(select(Branch).where(Branch.active == True)).all()
+    homepage_stats = s.scalars(select(HomepageStat).where(HomepageStat.active.is_(True)).order_by(HomepageStat.sort_order, HomepageStat.id)).all()
+    doctors = s.scalars(select(DoctorProfile).where(DoctorProfile.active.is_(True)).order_by(DoctorProfile.sort_order, DoctorProfile.id)).all()
+    reviews = s.scalars(select(CustomerReview).where(CustomerReview.active.is_(True)).order_by(CustomerReview.sort_order, CustomerReview.id.desc()).limit(3)).all()
+    return templates.TemplateResponse(request=request, name='home.html', context={
+        'reviews': reviews, 'homepage_stats': homepage_stats, 'doctors': doctors,
+        'clinic_photo_url': '', 'services': services, 'branches': branches,
+        'csrf_token': request.session['csrf'], 'admin_preview': True,
+    })
+
 
 @app.post('/admin/homepage-content/stats')
 def create_homepage_stat(request: Request, value: str = Form(...), label: str = Form(...), icon: str = Form('✦'), sort_order: int = Form(0), csrf_token: str = Form(...), s: Session = Depends(db)):
