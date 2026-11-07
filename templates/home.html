@@ -90,7 +90,92 @@
     </div>
   </section>
 
-  <section class="services section" id="dich-vu">
+
+
+<!-- THONG KE NHA KHOA -->
+<section class="showcase-section stats-section stats-premium" id="thong-ke">
+  <div class="container">
+    <div class="showcase-heading stats-premium-heading">
+      <span class="stats-eyebrow">✦ HÀNH TRÌNH PHÁT TRIỂN</span>
+      <h2>Nha Khoa Thạnh Phú qua <em>những con số</em></h2>
+      <p>Những dấu mốc quan trọng trong hành trình mang đến
+      nụ cười khỏe đẹp và sự hài lòng cho khách hàng.</p>
+    </div>
+
+    <div class="stats-premium-layout">
+      <div class="stats-clinic-visual">
+        <div class="stats-clinic-photo" role="img"
+             aria-label="Hình ảnh phòng khám đang cập nhật">
+          <span class="stats-photo-icon" aria-hidden="true">✚</span>
+          <span>Hình ảnh phòng khám đang cập nhật</span>
+        </div>
+      </div>
+
+      <div class="stats-premium-grid">
+        <article class="stats-premium-card">
+          <div class="stats-premium-icon" aria-hidden="true">▦</div>
+          <div>
+            <strong>—</strong>
+            <span>Năm kinh nghiệm hoạt động</span>
+          </div>
+        </article>
+
+        <article class="stats-premium-card">
+          <div class="stats-premium-icon" aria-hidden="true">♡</div>
+          <div>
+            <strong>—</strong>
+            <span>Khách hàng đã phục vụ</span>
+          </div>
+        </article>
+
+        <article class="stats-premium-card">
+          <div class="stats-premium-icon" aria-hidden="true">✚</div>
+          <div>
+            <strong>—</strong>
+            <span>Bác sĩ và nhân viên</span>
+          </div>
+        </article>
+
+        <article class="stats-premium-card">
+          <div class="stats-premium-icon" aria-hidden="true">⌖</div>
+          <div>
+            <strong>2</strong>
+            <span>Chi nhánh hoạt động</span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+  <div class="stats-bottom-wave" aria-hidden="true"></div>
+</section>
+
+<!-- DOI NGU BAC SI -->
+<section class="showcase-section doctors-section" id="doi-ngu-bac-si">
+  <div class="container">
+    <div class="showcase-heading">
+      <span class="eyebrow">ĐỘI NGŨ CHUYÊN MÔN</span>
+      <h2>Tận tâm trong từng nụ cười</h2>
+      <p>Đội ngũ bác sĩ tại Nha Khoa Thạnh Phú.</p>
+    </div>
+    <div class="doctors-grid">
+      {% for number in range(1, 5) %}
+      <article class="doctor-card">
+        <div class="doctor-photo">
+          <span aria-hidden="true">✚</span>
+          <p>Ảnh bác sĩ đang cập nhật</p>
+        </div>
+        <div class="doctor-info">
+          <span class="doctor-label">ĐỘI NGŨ NHA KHOA</span>
+          <h3>Thông tin bác sĩ đang cập nhật</h3>
+          <p>Chuyên môn và hồ sơ sẽ được bổ sung.</p>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="services section" id="dich-vu">
     <div class="container">
       <div class="section-heading">
         <div>
@@ -300,7 +385,61 @@
     </div>
   </section>
 
-  <!-- CAU HOI THUONG GAP -->
+
+
+<!-- CAM NHAN KHACH HANG -->
+<section class="showcase-section testimonials-section reviews-premium" id="cam-nhan-khach-hang">
+  <div class="container">
+    <div class="showcase-heading">
+      <span class="eyebrow">KHÁCH HÀNG NÓI GÌ VỀ CHÚNG TÔI</span>
+      <h2>Cảm nhận từ khách hàng</h2>
+      <p>Mỗi lời chia sẻ là động lực để Nha Khoa Thạnh Phú
+      không ngừng nâng cao chất lượng phục vụ.</p>
+    </div>
+
+    <div class="reviews-grid">
+      {% for review in reviews %}
+      <article class="review-card">
+        <div class="review-header">
+          <div class="review-avatar">
+            {% if review.avatar_url and (
+              review.avatar_url.startswith('/')
+              or review.avatar_url.startswith('https://res.cloudinary.com/')
+            ) %}
+            <img src="{{ review.avatar_url | e }}"
+                 alt="Ảnh đại diện {{ review.customer_name | e }}"
+                 loading="lazy">
+            {% else %}
+            <span aria-hidden="true">☺</span>
+            {% endif %}
+          </div>
+          <div class="review-customer">
+            <h3>{{ review.customer_name }}</h3>
+            <span>Khách hàng Nha Khoa Thạnh Phú</span>
+          </div>
+        </div>
+
+        <div class="review-stars"
+             aria-label="Đánh giá {{ review.rating }} trên 5 sao">
+          {{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}
+        </div>
+
+        <p class="review-content">{{ review.content }}</p>
+
+        <div class="review-bottom">
+          <span>✦ NHA KHOA THẠNH PHÚ</span>
+        </div>
+      </article>
+      {% else %}
+      <p class="reviews-empty">
+        Cảm nhận khách hàng sẽ được cập nhật tại đây.
+      </p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- CAU HOI THUONG GAP -->
   <section class="faq section" id="cau-hoi-thuong-gap">
     <div class="container faq-container">
       <div class="section-heading">

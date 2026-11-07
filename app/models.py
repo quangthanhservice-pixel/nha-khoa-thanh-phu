@@ -67,3 +67,17 @@ class AppointmentRequest(Base):
         default=now,
         nullable=False
     )
+
+
+class CustomerReview(Base):
+    __tablename__ = 'customer_reviews'
+
+    id = Column(Integer, primary_key=True)
+    customer_name = Column(String(150), nullable=False)
+    avatar_url = Column(String(500), default='')
+    avatar_public_id = Column(String(255), default='')
+    content = Column(Text, nullable=False)
+    rating = Column(Integer, nullable=False, default=5)
+    sort_order = Column(Integer, nullable=False, default=0)
+    active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=now)

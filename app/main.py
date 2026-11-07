@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 from decimal import Decimal
 from pathlib import Path
 from urllib.parse import quote
-from fastapi import FastAPI, Request, Form, HTTPException, Depends
+from fastapi import FastAPI, Request, Form, HTTPException, Depends, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -30,6 +30,8 @@ PERMISSIONS['booking_requests'] = {
     'manager',
     'reception',
 }
+
+PERMISSIONS['customer_reviews'] = {'owner', 'manager'}
 
 def password_hash(p):
     salt=secrets.token_bytes(16); key=hashlib.pbkdf2_hmac('sha256',p.encode(),salt,260000)
@@ -65,7 +67,7 @@ def money(value): return f'{Decimal(value):,.0f} đ'
 def redirect(path): return RedirectResponse(path,status_code=303)
 def audit(s,user,action,entity,entity_id,bid=None): s.add(AuditLog(actor_id=user.id,branch_id=bid or user.branch_id,action=action,entity=entity,entity_id=entity_id))
 def page(title,body,request=None,user=None,active=''):
-    menu=[('dashboard','Tổng quan','/admin'),('patients','Bệnh nhân','/admin/patients'),('appointments','Lịch hẹn','/admin/appointments'),('booking_requests','Yêu cầu đặt lịch','/admin/booking-requests'),('treatments','Điều trị','/admin/treatments'),('services','Dịch vụ','/admin/services'),('invoices','Thu ngân','/admin/invoices'),('inventory','Kho vật tư','/admin/inventory'),('expenses','Chi phí','/admin/expenses'),('reminders','Tái khám','/admin/reminders'),('pages','Nội dung web','/admin/pages'),('users','Nhân viên','/admin/users'),('branches','Chi nhánh','/admin/branches'),('audit','Nhật ký','/admin/audit')]
+    menu=[('dashboard','Tổng quan','/admin'),('patients','Bệnh nhân','/admin/patients'),('appointments','Lịch hẹn','/admin/appointments'),('booking_requests','Yêu cầu đặt lịch','/admin/booking-requests'),('treatments','Điều trị','/admin/treatments'),('services','Dịch vụ','/admin/services'),('invoices','Thu ngân','/admin/invoices'),('inventory','Kho vật tư','/admin/inventory'),('expenses','Chi phí','/admin/expenses'),('reminders','Tái khám','/admin/reminders'),('pages','Nội dung web','/admin/pages'),('customer_reviews','Cảm nhận khách hàng','/admin/customer-reviews'),('users','Nhân viên','/admin/users'),('branches','Chi nhánh','/admin/branches'),('audit','Nhật ký','/admin/audit')]
     nav=''; top=''
     if user:
         nav='<aside><div class="brand">✚ THẠNH PHÚ <small>DENTAL MANAGEMENT</small></div>'+''.join(f'<a class="{"selected" if active==k else ""}" href="{url}">{esc(label)}</a>' for k,label,url in menu if k=='dashboard' or user.role in PERMISSIONS.get(k,set()))+'</aside>'
@@ -107,10 +109,18 @@ def home(request: Request, s: Session = Depends(db)):
         .where(Branch.active == True)
     ).all()
 
+    reviews = s.scalars(
+        select(CustomerReview)
+        .where(CustomerReview.active.is_(True))
+        .order_by(CustomerReview.sort_order, CustomerReview.id.desc())
+        .limit(3)
+    ).all()
+
     return templates.TemplateResponse(
         request=request,
         name='home.html',
         context={
+            'reviews': reviews,
             'services': services,
             'branches': branches,
             'csrf_token': request.session['csrf'],
@@ -806,3 +816,318 @@ def add_user(request:Request,username:str=Form(...),full_name:str=Form(...),pass
 def logs(request:Request,s:Session=Depends(db)):
     u=require(request,s,'audit'); bid=branch_id(request,u); rows=s.scalars(select(AuditLog).where(AuditLog.branch_id==bid).order_by(AuditLog.id.desc()).limit(100)).all()
     return page('Nhật ký thao tác',table(['Thời điểm','Người dùng','Thao tác','Bảng','ID'],[(esc(x.created_at),x.actor_id,esc(x.action),esc(x.entity),x.entity_id) for x in rows]),request,u,'audit')
+
+
+
+# CUSTOMER REVIEWS ADMIN V1
+@app.get('/admin/customer-reviews')
+def customer_reviews_admin(
+    request: Request,
+    s: Session = Depends(db)
+):
+    u = require(request, s, 'customer_reviews')
+
+    reviews = s.scalars(
+        select(CustomerReview).order_by(
+            CustomerReview.sort_order,
+            CustomerReview.id.desc()
+        )
+    ).all()
+
+    fields = (
+        '<div class="review-field-name">'
+        + field('Tên khách hàng', 'customer_name')
+        + '</div>'
+        + '<div class="review-field-rating">'
+        + select_field(
+            'Đánh giá sao', 'rating',
+            [(i, f'{i} sao') for i in range(1, 6)], 5
+        )
+        + '</div>'
+        + '<div class="review-field-order">'
+        + field(
+            'Thứ tự hiển thị', 'sort_order', 'number',
+            extra='min="0" value="0"'
+        )
+        + '</div>'
+        + '<div class="review-field-content">'
+        + '<label>Nội dung cảm nhận'
+        + '<textarea name="content" rows="5" required></textarea></label>'
+        + '</div>'
+    )
+
+    content = (
+        '<div class="customer-review-admin">'
+        + card_form(
+            request,
+            '/admin/customer-reviews',
+            fields,
+            'Thêm cảm nhận'
+        )
+        + '</div>'
+    )
+
+    rows = []
+
+    for r in reviews:
+        rows.append((
+            esc(r.customer_name),
+            esc(r.content),
+            '★' * r.rating + '☆' * (5 - r.rating),
+            'Hiện' if r.active else 'Ẩn',
+            esc(r.sort_order),
+            (
+                '<div class="service-actions">'
+                + f'<a class="service-action service-edit" href="/admin/customer-reviews/{r.id}/edit">✎ Sửa</a>'
+                + form_open(request, f'/admin/customer-reviews/{r.id}/toggle')
+                + '<button class="service-action service-toggle '
+                + ('is-active' if r.active else 'is-hidden')
+                + '" type="submit">'
+                + ('◉ Ẩn' if r.active else '◎ Hiện')
+                + '</button></form></div>'
+            )
+        ))
+
+    content += table(
+        ['Khách hàng', 'Cảm nhận', 'Đánh giá', 'Trạng thái', 'Thứ tự', 'Thao tác'],
+        rows
+    )
+
+    return page(
+        'Cảm nhận khách hàng',
+        content,
+        request,
+        u,
+        'customer_reviews'
+    )
+
+
+@app.post('/admin/customer-reviews')
+def create_customer_review(
+    request: Request,
+    customer_name: str = Form(...),
+    content: str = Form(...),
+    rating: int = Form(5),
+    sort_order: int = Form(0),
+    csrf_token: str = Form(...),
+    s: Session = Depends(db)
+):
+    csrf(request, csrf_token)
+    u = require(request, s, 'customer_reviews')
+
+    customer_name = customer_name.strip()
+    content = content.strip()
+
+    if not customer_name or not content:
+        raise HTTPException(400, 'Vui lòng nhập đầy đủ thông tin')
+
+    if len(customer_name) > 150 or len(content) > 3000:
+        raise HTTPException(400, 'Nội dung vượt quá giới hạn')
+
+    if not 1 <= rating <= 5 or sort_order < 0:
+        raise HTTPException(400, 'Số sao hoặc thứ tự không hợp lệ')
+
+    review = CustomerReview(
+        customer_name=customer_name,
+        content=content,
+        rating=rating,
+        sort_order=sort_order,
+        active=True
+    )
+
+    s.add(review)
+    s.flush()
+    audit(s, u, 'create', 'customer_review', review.id)
+    s.commit()
+
+    return redirect('/admin/customer-reviews')
+
+
+
+# CUSTOMER REVIEW EDIT V1
+@app.get('/admin/customer-reviews/{review_id}/edit')
+def edit_customer_review_page(
+    review_id: int,
+    request: Request,
+    s: Session = Depends(db)
+):
+    u = require(request, s, 'customer_reviews')
+    r = s.get(CustomerReview, review_id)
+
+    if not r:
+        raise HTTPException(404, 'Không tìm thấy cảm nhận')
+
+    content = (
+        '<section class="card customer-review-admin"><h3>Chỉnh sửa cảm nhận khách hàng</h3>'
+        + (
+            form_open(request, f'/admin/customer-reviews/{review_id}/edit')
+            .replace('<form method="post"',
+                     '<form enctype="multipart/form-data" method="post"', 1)
+        )
+        + '<div class="fields review-edit-fields">'
+        + (
+            '<div class="avatar-preview">'
+            + (
+                f'<img src="{esc(r.avatar_url)}" '
+                'alt="Ảnh đại diện hiện tại" '
+                'style="width:90px;height:90px;object-fit:cover;border-radius:50%">'
+                if r.avatar_url and r.avatar_url.startswith('https://res.cloudinary.com/')
+                else '<span>Chưa có ảnh đại diện</span>'
+            )
+            + '</div>'
+        )
+        + '<label>Chọn ảnh đại diện mới'
+        + '<input type="file" name="avatar" accept="image/jpeg,image/png,image/webp">'
+        + '</label>'
+        + (
+            '<label style="display:flex;align-items:center;gap:8px">'
+            '<input type="checkbox" name="remove_avatar" value="1">'
+            'Xóa ảnh đại diện hiện tại'
+            '</label>'
+            if r.avatar_url else ''
+        )
+        + '<div class="review-field-name">'
+        + field(
+            'Tên khách hàng', 'customer_name',
+            extra=f'value="{esc(r.customer_name)}"'
+        )
+        + '</div>'
+        + '<div class="review-field-content">'
+        + '<label>Nội dung cảm nhận'
+        + f'<textarea name="content" rows="5" required>{esc(r.content)}</textarea>'
+        + '</label></div>'
+        + '<div class="review-field-rating">'
+        + select_field(
+            'Đánh giá sao', 'rating',
+            [(i, f'{i} sao') for i in range(1, 6)],
+            r.rating
+        )
+        + '</div>'
+        + '<div class="review-field-order">'
+        + field(
+            'Thứ tự hiển thị', 'sort_order', 'number',
+            extra=f'min="0" value="{r.sort_order}"'
+        )
+        + '</div>'
+        + '</div><button>Lưu thay đổi</button></form></section>'
+        + '<p><a href="/admin/customer-reviews">← Quay lại danh sách</a></p>'
+    )
+
+    return page(
+        'Sửa cảm nhận khách hàng',
+        content,
+        request,
+        u,
+        'customer_reviews'
+    )
+
+
+@app.post('/admin/customer-reviews/{review_id}/edit')
+def update_customer_review(
+    review_id: int,
+    request: Request,
+    customer_name: str = Form(...),
+    content: str = Form(...),
+    rating: int = Form(...),
+    sort_order: int = Form(0),
+    avatar: UploadFile = File(None),
+    remove_avatar: str = Form(''),
+    csrf_token: str = Form(...),
+    s: Session = Depends(db)
+):
+    csrf(request, csrf_token)
+    u = require(request, s, 'customer_reviews')
+    r = s.get(CustomerReview, review_id)
+
+    if not r:
+        raise HTTPException(404, 'Không tìm thấy cảm nhận')
+
+    customer_name = customer_name.strip()
+    content = content.strip()
+
+    if (
+        not customer_name or not content
+        or len(customer_name) > 150
+        or len(content) > 3000
+        or not 1 <= rating <= 5
+        or sort_order < 0
+    ):
+        raise HTTPException(400, 'Thông tin không hợp lệ')
+
+    old_avatar_public_id = r.avatar_public_id or ''
+    new_avatar_public_id = ''
+
+    if remove_avatar not in ('', '1'):
+        raise HTTPException(400, 'Yêu cầu xóa ảnh không hợp lệ')
+
+    if remove_avatar == '1' and avatar is not None and avatar.filename:
+        raise HTTPException(400, 'Chỉ chọn thay ảnh hoặc xóa ảnh')
+
+    if avatar is not None and avatar.filename:
+        from .cloudinary_storage import (
+            upload_validated_customer_avatar
+        )
+        avatar_data = avatar.file.read(5 * 1024 * 1024 + 1)
+        avatar_url, avatar_public_id = (
+            upload_validated_customer_avatar(
+                avatar_data, avatar.filename
+            )
+        )
+        r.avatar_url = avatar_url
+        r.avatar_public_id = avatar_public_id
+        new_avatar_public_id = avatar_public_id
+
+    elif remove_avatar == '1':
+        r.avatar_url = ''
+        r.avatar_public_id = ''
+
+    r.customer_name = customer_name
+    r.content = content
+    r.rating = rating
+    r.sort_order = sort_order
+
+    try:
+        audit(s, u, 'update', 'customer_review', r.id)
+        s.commit()
+    except Exception:
+        s.rollback()
+        if new_avatar_public_id:
+            try:
+                from .cloudinary_storage import delete_customer_avatar
+                delete_customer_avatar(new_avatar_public_id)
+            except Exception:
+                pass
+        raise
+
+    if old_avatar_public_id and (
+        new_avatar_public_id or remove_avatar == '1'
+    ):
+        try:
+            from .cloudinary_storage import delete_customer_avatar
+            delete_customer_avatar(old_avatar_public_id)
+        except Exception:
+            pass
+
+    return redirect('/admin/customer-reviews')
+
+
+# CUSTOMER REVIEW TOGGLE V1
+@app.post('/admin/customer-reviews/{review_id}/toggle')
+def toggle_customer_review(
+    review_id: int,
+    request: Request,
+    csrf_token: str = Form(...),
+    s: Session = Depends(db)
+):
+    csrf(request, csrf_token)
+    u = require(request, s, 'customer_reviews')
+    r = s.get(CustomerReview, review_id)
+
+    if not r:
+        raise HTTPException(404, 'Không tìm thấy cảm nhận')
+
+    r.active = not r.active
+    audit(s, u, 'toggle', 'customer_review', r.id)
+    s.commit()
+
+    return redirect('/admin/customer-reviews')
