@@ -214,3 +214,60 @@ button.service-toggle.is-hidden:hover {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* HOMEPAGE CONTENT ADMIN ACTION BUTTONS */
+td .service-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-width: 220px;
+}
+td .service-action-form {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+td .service-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  min-height: 34px;
+  margin: 0;
+  padding: 7px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+td a.service-edit {
+  color: #315fc5;
+  background: #edf3ff;
+  border-color: #dce7ff;
+}
+td a.service-edit:hover { background: #dce7ff; }
+td button.service-toggle.is-active {
+  color: #b42336;
+  background: #fcebec;
+  border-color: #f4d2d6;
+}
+td button.service-toggle.is-hidden {
+  color: #16834a;
+  background: #e8f6ed;
+  border-color: #ccebd7;
+}
+td button.service-delete {
+  color: #b42336;
+  background: #fff;
+  border-color: #f0c7cd;
+}
+td button.service-delete:hover { color: #fff; background: #d71930; }

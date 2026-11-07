@@ -1150,7 +1150,14 @@ def homepage_content_admin(request: Request, s: Session = Depends(db)):
     content = '<h3>Hành trình phát triển – thêm chỉ số</h3>' + card_form(request, '/admin/homepage-content/stats', stat_fields, 'Thêm chỉ số')
     stat_rows = []
     for x in stats:
-        actions = f'<a href="/admin/homepage-content/stats/{x.id}/edit">Sửa</a> ' + form_open(request, f'/admin/homepage-content/stats/{x.id}/toggle') + '<button>' + ('Ẩn' if x.active else 'Hiện') + '</button></form> ' + form_open(request, f'/admin/homepage-content/stats/{x.id}/delete').replace('<form method="post"', '<form method="post" onsubmit="return confirm(\'Xóa chỉ số này?\')"') + '<button class="btn-danger">Xóa</button></form>'
+        actions = (
+            '<div class="service-actions">'
+            + f'<a class="service-action service-edit" href="/admin/homepage-content/stats/{x.id}/edit">Sửa</a>'
+            + form_open(request, f'/admin/homepage-content/stats/{x.id}/toggle').replace('<form method="post"', '<form class="service-action-form" method="post"')
+            + '<button class="service-action service-toggle ' + ('is-active' if x.active else 'is-hidden') + '">' + ('Ẩn' if x.active else 'Hiện') + '</button></form>'
+            + form_open(request, f'/admin/homepage-content/stats/{x.id}/delete').replace('<form method="post"', '<form class="service-action-form" method="post" onsubmit="return confirm(\\'Xóa chỉ số này?\\')"')
+            + '<button class="service-action service-delete">Xóa</button></form></div>'
+        )
         stat_rows.append((x.id, esc(x.value), esc(x.label), esc(x.sort_order), 'Hiện' if x.active else 'Ẩn', actions))
     content += table(['ID','Giá trị','Nhãn','Thứ tự','Trạng thái','Thao tác'], stat_rows)
     content += '<p><a class="button" href="/admin/homepage-content/preview" target="_blank" rel="noopener">Xem trước trang chủ ↗</a></p>'
@@ -1160,7 +1167,14 @@ def homepage_content_admin(request: Request, s: Session = Depends(db)):
     rows = []
     for d in doctors:
         photo = f'<img src="{esc(d.photo_url)}" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:10px">' if d.photo_url else 'Chưa có ảnh'
-        actions = f'<a href="/admin/homepage-content/doctors/{d.id}/edit">Sửa</a> ' + form_open(request, f'/admin/homepage-content/doctors/{d.id}/toggle') + '<button>' + ('Ẩn' if d.active else 'Hiện') + '</button></form> ' + form_open(request, f'/admin/homepage-content/doctors/{d.id}/delete').replace('<form method="post"', '<form method="post" onsubmit="return confirm(\'Xóa hồ sơ bác sĩ này?\')"') + '<button class="btn-danger">Xóa</button></form>'
+        actions = (
+            '<div class="service-actions">'
+            + f'<a class="service-action service-edit" href="/admin/homepage-content/doctors/{d.id}/edit">Sửa</a>'
+            + form_open(request, f'/admin/homepage-content/doctors/{d.id}/toggle').replace('<form method="post"', '<form class="service-action-form" method="post"')
+            + '<button class="service-action service-toggle ' + ('is-active' if d.active else 'is-hidden') + '">' + ('Ẩn' if d.active else 'Hiện') + '</button></form>'
+            + form_open(request, f'/admin/homepage-content/doctors/{d.id}/delete').replace('<form method="post"', '<form class="service-action-form" method="post" onsubmit="return confirm(\\'Xóa hồ sơ bác sĩ này?\\')"')
+            + '<button class="service-action service-delete">Xóa</button></form></div>'
+        )
         rows.append((d.id, photo, esc(d.full_name), esc(d.specialty), 'Hiện' if d.active else 'Ẩn', actions))
     content += table(['ID','Ảnh','Bác sĩ','Chuyên khoa','Trạng thái','Thao tác'], rows)
     return page('Quản lý nội dung trang chủ', content, request, u, 'homepage_content')
