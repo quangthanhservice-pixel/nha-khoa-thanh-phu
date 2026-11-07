@@ -106,3 +106,10 @@ class DoctorProfile(Base):
     photo_public_id = Column(String(255), default='')
     sort_order = Column(Integer, nullable=False, default=0)
     active = Column(Boolean, nullable=False, default=True)
+
+
+class HomepageVisual(Base):
+    __tablename__ = 'homepage_visuals'
+    id = Column(Integer, primary_key=True)
+    photo_url = Column(String(500), default='')
+    photo_public_id = Column(String(255), default='')

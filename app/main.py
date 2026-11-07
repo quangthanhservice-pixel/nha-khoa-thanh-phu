@@ -127,7 +127,7 @@ def home(request: Request, s: Session = Depends(db)):
             'reviews': reviews,
             'homepage_stats': homepage_stats,
             'doctors': doctors,
-            'clinic_photo_url': '',
+            'clinic_photo_url': (s.get(HomepageVisual, 1).photo_url if s.get(HomepageVisual, 1) else ''),
             'services': services,
             'branches': branches,
             'csrf_token': request.session['csrf'],
@@ -1146,8 +1146,11 @@ def homepage_content_admin(request: Request, s: Session = Depends(db)):
     u = require(request, s, 'homepage_content')
     stats = s.scalars(select(HomepageStat).order_by(HomepageStat.sort_order, HomepageStat.id)).all()
     doctors = s.scalars(select(DoctorProfile).order_by(DoctorProfile.sort_order, DoctorProfile.id)).all()
+    visual = s.get(HomepageVisual, 1)
+    visual_photo = f'<img src="{esc(visual.photo_url)}" alt="Ảnh hiện tại" style="width:180px;height:120px;object-fit:cover;border-radius:12px;margin:8px 0">' if visual and visual.photo_url else '<p>Chưa có ảnh. Khối bên trái sẽ hiển thị ảnh mặc định cho đến khi tải ảnh lên.</p>'
+    visual_form = '<section class="card"><h3>Ảnh khối Hành trình phát triển</h3>' + visual_photo + form_open(request, '/admin/homepage-content/visual').replace('<form method="post"', '<form enctype="multipart/form-data" method="post"', 1) + '<label>Chọn ảnh (JPG, PNG hoặc WebP, tối đa 5 MB)<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></label><button>Cập nhật ảnh</button></form></section>'
     stat_fields = field('Giá trị thống kê', 'value') + field('Nhãn', 'label') + field('Biểu tượng', 'icon', required=False) + field('Thứ tự', 'sort_order', 'number', extra='min="0" value="0"')
-    content = '<h3>Hành trình phát triển – thêm chỉ số</h3>' + card_form(request, '/admin/homepage-content/stats', stat_fields, 'Thêm chỉ số')
+    content = visual_form + '<h3>Hành trình phát triển – thêm chỉ số</h3>' + card_form(request, '/admin/homepage-content/stats', stat_fields, 'Thêm chỉ số')
     stat_rows = []
     for x in stats:
         actions = (
@@ -1179,6 +1182,7 @@ def homepage_content_admin(request: Request, s: Session = Depends(db)):
     content += table(['ID','Ảnh','Bác sĩ','Chuyên khoa','Trạng thái','Thao tác'], rows)
     return page('Quản lý nội dung trang chủ', content, request, u, 'homepage_content')
 
+
 @app.get('/admin/homepage-content/preview')
 def preview_homepage_content(request: Request, s: Session = Depends(db)):
     require(request, s, 'homepage_content')
@@ -1191,10 +1195,35 @@ def preview_homepage_content(request: Request, s: Session = Depends(db)):
     reviews = s.scalars(select(CustomerReview).where(CustomerReview.active.is_(True)).order_by(CustomerReview.sort_order, CustomerReview.id.desc()).limit(3)).all()
     return templates.TemplateResponse(request=request, name='home.html', context={
         'reviews': reviews, 'homepage_stats': homepage_stats, 'doctors': doctors,
-        'clinic_photo_url': '', 'services': services, 'branches': branches,
+        'clinic_photo_url': (s.get(HomepageVisual, 1).photo_url if s.get(HomepageVisual, 1) else ''), 'services': services, 'branches': branches,
         'csrf_token': request.session['csrf'], 'admin_preview': True,
     })
 
+
+@app.post('/admin/homepage-content/visual')
+async def update_homepage_visual(request: Request, photo: UploadFile = File(...), csrf_token: str = Form(...), s: Session = Depends(db)):
+    csrf(request, csrf_token)
+    u = require(request, s, 'homepage_content')
+    if not photo or not photo.filename:
+        raise HTTPException(400, 'Bạn chưa chọn ảnh')
+    data = await photo.read()
+    from .cloudinary_storage import upload_validated_image, delete_customer_avatar
+    photo_url, photo_public_id = upload_validated_image(data, photo.filename, folder='nha-khoa-thanh-phu/homepage')
+    visual = s.get(HomepageVisual, 1)
+    old_public_id = visual.photo_public_id if visual else ''
+    if not visual:
+        visual = HomepageVisual(id=1)
+        s.add(visual)
+    visual.photo_url = photo_url
+    visual.photo_public_id = photo_public_id
+    audit(s, u, 'update', 'homepage_visual', 1)
+    s.commit()
+    if old_public_id and old_public_id != photo_public_id:
+        try:
+            delete_customer_avatar(old_public_id)
+        except Exception:
+            pass
+    return redirect('/admin/homepage-content')
 
 @app.post('/admin/homepage-content/stats')
 def create_homepage_stat(request: Request, value: str = Form(...), label: str = Form(...), icon: str = Form('✦'), sort_order: int = Form(0), csrf_token: str = Form(...), s: Session = Depends(db)):

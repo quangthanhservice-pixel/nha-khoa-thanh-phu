@@ -101,12 +101,16 @@
       <p>Những dấu mốc quan trọng trong hành trình mang đến nụ cười khỏe đẹp và sự hài lòng cho khách hàng.</p>
     </div>
     <div class="stats-premium-layout">
-      <div class="stats-clinic-visual" aria-label="Hành trình phát triển Nha Khoa Thạnh Phú">
+      <div class="stats-clinic-visual" aria-label="Ảnh Nha Khoa Thạnh Phú">
         <div class="stats-clinic-photo">
+          {% if clinic_photo_url %}
+          <img class="stats-clinic-image" src="{{ clinic_photo_url }}" alt="Hình ảnh Nha Khoa Thạnh Phú" loading="lazy">
+          {% else %}
           <div class="stats-photo-icon" aria-hidden="true">✚</div>
           <span class="stats-visual-eyebrow">NHA KHOA THẠNH PHÚ</span>
           <h3>Tận tâm chăm sóc<br><em>nụ cười Việt</em></h3>
           <p>Chuyên nghiệp trong từng dịch vụ, đồng hành trên hành trình chăm sóc sức khỏe răng miệng.</p>
+          {% endif %}
         </div>
       </div>
       <div class="stats-premium-grid">
