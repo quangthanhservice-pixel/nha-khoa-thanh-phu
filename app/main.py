@@ -1155,7 +1155,7 @@ def homepage_content_admin(request: Request, s: Session = Depends(db)):
             + f'<a class="service-action service-edit" href="/admin/homepage-content/stats/{x.id}/edit">Sửa</a>'
             + form_open(request, f'/admin/homepage-content/stats/{x.id}/toggle').replace('<form method="post"', '<form class="service-action-form" method="post"')
             + '<button class="service-action service-toggle ' + ('is-active' if x.active else 'is-hidden') + '">' + ('Ẩn' if x.active else 'Hiện') + '</button></form>'
-            + form_open(request, f'/admin/homepage-content/stats/{x.id}/delete').replace('<form method="post"', '<form class="service-action-form" method="post" onsubmit="return confirm(\\'Xóa chỉ số này?\\')"')
+            + form_open(request, f'/admin/homepage-content/stats/{x.id}/delete').replace('<form method="post"', '<form class="service-action-form" method="post" onsubmit="return confirm(&quot;Xóa chỉ số này?&quot;)"')
             + '<button class="service-action service-delete">Xóa</button></form></div>'
         )
         stat_rows.append((x.id, esc(x.value), esc(x.label), esc(x.sort_order), 'Hiện' if x.active else 'Ẩn', actions))
@@ -1172,7 +1172,7 @@ def homepage_content_admin(request: Request, s: Session = Depends(db)):
             + f'<a class="service-action service-edit" href="/admin/homepage-content/doctors/{d.id}/edit">Sửa</a>'
             + form_open(request, f'/admin/homepage-content/doctors/{d.id}/toggle').replace('<form method="post"', '<form class="service-action-form" method="post"')
             + '<button class="service-action service-toggle ' + ('is-active' if d.active else 'is-hidden') + '">' + ('Ẩn' if d.active else 'Hiện') + '</button></form>'
-            + form_open(request, f'/admin/homepage-content/doctors/{d.id}/delete').replace('<form method="post"', '<form class="service-action-form" method="post" onsubmit="return confirm(\\'Xóa hồ sơ bác sĩ này?\\')"')
+            + form_open(request, f'/admin/homepage-content/doctors/{d.id}/delete').replace('<form method="post"', '<form class="service-action-form" method="post" onsubmit="return confirm(&quot;Xóa hồ sơ bác sĩ này?&quot;)"')
             + '<button class="service-action service-delete">Xóa</button></form></div>'
         )
         rows.append((d.id, photo, esc(d.full_name), esc(d.specialty), 'Hiện' if d.active else 'Ẩn', actions))
