@@ -61,3 +61,156 @@ button.service-toggle.is-hidden {
 button.service-toggle.is-hidden:hover {
     background: #d6efdf;
 }
+
+
+/* CUSTOMER REVIEW ADMIN FORM V1 */
+.customer-review-admin .fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px 22px;
+    align-items: start;
+}
+
+.customer-review-admin .fields > label {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    margin: 0;
+    gap: 7px;
+    line-height: 1.5;
+}
+
+.customer-review-admin .fields > label:has(textarea) {
+    grid-column: 1 / -1;
+}
+
+.customer-review-admin input:not([type="checkbox"]),
+.customer-review-admin select,
+.customer-review-admin textarea {
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px solid #d6dce6;
+    border-radius: 9px;
+    background: #fff;
+    color: #1d2836;
+    font: inherit;
+}
+
+.customer-review-admin textarea {
+    display: block;
+    min-height: 150px;
+    resize: vertical;
+    line-height: 1.6;
+}
+
+.customer-review-admin .avatar-preview {
+    grid-column: 1 / -1;
+}
+
+.customer-review-admin .fields > label:has(input[type="file"]),
+.customer-review-admin .fields > label:has(input[type="checkbox"]) {
+    grid-column: 1 / -1;
+}
+
+.customer-review-admin input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.customer-review-admin button {
+    background: #ff2338;
+    color: #fff;
+}
+
+@media (max-width: 760px) {
+    .customer-review-admin .fields {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* CUSTOMER REVIEW EDIT LAYOUT V2 */
+.customer-review-admin .review-edit-fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
+.review-edit-fields .review-field-name {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.review-edit-fields .review-field-rating {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.review-edit-fields .review-field-order {
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.review-edit-fields .review-field-content {
+    grid-column: 1 / -1;
+    grid-row: 2;
+}
+
+.review-edit-fields .review-field-content textarea {
+    width: 100%;
+    min-height: 160px;
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+.review-edit-fields .avatar-preview {
+    grid-column: 1 / -1;
+    grid-row: 3;
+}
+
+.review-edit-fields > label:has(input[type="file"]) {
+    grid-column: 1 / -1;
+    grid-row: 4;
+}
+
+.review-edit-fields > label:has(input[type="checkbox"]) {
+    grid-column: 1 / -1;
+    grid-row: 5;
+}
+
+@media (max-width: 760px) {
+    .customer-review-admin .review-edit-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .review-edit-fields > * {
+        grid-column: 1 !important;
+        grid-row: auto !important;
+    }
+}
+
+/* CUSTOMER REVIEW ADD LAYOUT V1 */
+.customer-review-admin .fields:has(.review-field-content) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.customer-review-admin .review-field-content {
+    grid-column: 1 / -1;
+}
+
+.customer-review-admin .review-field-content textarea {
+    display: block;
+    width: 100%;
+    min-height: 160px;
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+@media (max-width: 760px) {
+    .customer-review-admin .fields:has(.review-field-content) {
+        grid-template-columns: 1fr;
+    }
+}

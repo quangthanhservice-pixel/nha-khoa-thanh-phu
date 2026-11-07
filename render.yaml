@@ -9,6 +9,8 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false
+      - key: CLOUDINARY_URL
+        sync: false
       - key: SESSION_SECRET
         generateValue: true
       - key: COOKIE_SECURE
