@@ -91,6 +91,11 @@ def admin_view(request,s,module,title,content):
     u=require(request,s,module if module!='dashboard' else None)
     return page(title,content,request,u,module)
 
+@app.get('/health', include_in_schema=False)
+def health():
+    """Lightweight liveness check; does not query patient data or the database."""
+    return {'status': 'ok'}
+
 @app.on_event('startup')
 def startup(): Base.metadata.create_all(engine)
 
