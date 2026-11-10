@@ -1814,3 +1814,9 @@ h2 { font-size: clamp(32px, 4vw, 48px); }
 .footer-brand-logo-image { display:block; width:68px; height:68px; object-fit:contain; flex:none; border-radius:6px; background:#fff; }
 .brand-logo-image[hidden], .footer-brand-logo-image[hidden], .logo-mark[hidden], .footer-logo-icon[hidden] { display:none !important; }
 @media (max-width: 600px) { .brand-logo-image { width:44px; height:44px; } .footer-brand-logo-image { width:54px; height:54px; } }
+
+/* Show only the top TP symbol of the ORIGINAL uploaded logo; preserve clinic name beside it. */
+.brand-symbol-crop, .footer-symbol-crop { display:block; flex:none; background-color:#fff; background-image:url("/static/images/logo%20nktp.jpg"); background-repeat:no-repeat; background-position:center top; border-radius:5px; }
+.brand-symbol-crop { width:58px; height:58px; background-size:86px 86px; }
+.footer-symbol-crop { width:68px; height:68px; background-size:100px 100px; }
+@media(max-width:600px) { .brand-symbol-crop { width:44px; height:44px; background-size:66px 66px; } .footer-symbol-crop { width:54px; height:54px; background-size:80px 80px; } }
