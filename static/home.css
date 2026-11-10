@@ -1,5 +1,5 @@
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap');
 
 :root {
   --wine: #FF2338;
@@ -1805,3 +1805,6 @@ h2 { font-size: clamp(32px, 4vw, 48px); }
   .doctors-section .doctor-card { align-items:center; }
   .doctors-section .doctor-photo { align-self:center; width:100%; }
 }
+
+/* Doctor name: Vietnamese diacritics and consistent font rendering */
+.doctors-section .doctor-info h3.doctor-name { font-family:'Noto Sans',Arial,sans-serif; font-weight:700; font-synthesis:none; letter-spacing:normal; word-spacing:normal; line-height:1.4; }
