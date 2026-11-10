@@ -1820,3 +1820,8 @@ h2 { font-size: clamp(32px, 4vw, 48px); }
 .brand-symbol-crop { width:58px; height:58px; background-size:86px 86px; }
 .footer-symbol-crop { width:68px; height:68px; background-size:100px 100px; }
 @media(max-width:600px) { .brand-symbol-crop { width:44px; height:44px; background-size:66px 66px; } .footer-symbol-crop { width:54px; height:54px; background-size:80px 80px; } }
+
+/* Precise icon-only crop: original square art starts text at ~66% height. Keep crop above lettering. */
+.brand-symbol-crop { width:70px; height:55px; background-size:90px 90px; background-position:center -3px; overflow:hidden; }
+.footer-symbol-crop { width:80px; height:63px; background-size:104px 104px; background-position:center -4px; overflow:hidden; }
+@media(max-width:600px) { .brand-symbol-crop { width:52px; height:42px; background-size:70px 70px; background-position:center -2px; } .footer-symbol-crop { width:62px; height:49px; background-size:82px 82px; background-position:center -3px; } }
