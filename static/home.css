@@ -1808,3 +1808,9 @@ h2 { font-size: clamp(32px, 4vw, 48px); }
 
 /* Doctor name: Vietnamese diacritics and consistent font rendering */
 .doctors-section .doctor-info h3.doctor-name { font-family:'Noto Sans',Arial,sans-serif; font-weight:700; font-synthesis:none; letter-spacing:normal; word-spacing:normal; line-height:1.4; }
+
+/* Brand logo: original square artwork; preserve aspect ratio and fallback mark. */
+.brand-logo-image { display:block; width:58px; height:58px; object-fit:contain; flex:none; border-radius:6px; background:#fff; }
+.footer-brand-logo-image { display:block; width:68px; height:68px; object-fit:contain; flex:none; border-radius:6px; background:#fff; }
+.brand-logo-image[hidden], .footer-brand-logo-image[hidden], .logo-mark[hidden], .footer-logo-icon[hidden] { display:none !important; }
+@media (max-width: 600px) { .brand-logo-image { width:44px; height:44px; } .footer-brand-logo-image { width:54px; height:54px; } }
