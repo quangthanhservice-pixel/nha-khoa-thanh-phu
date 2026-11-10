@@ -1723,3 +1723,7 @@ h2 { font-size: clamp(32px, 4vw, 48px); }
 .doctors-section .founder-credentials[open] summary { border-bottom:1px solid #ead0d3; }
 .doctors-section .founder-credentials ul { margin:0; padding:14px 20px 16px 36px; }
 .doctors-section .founder-credentials li { margin:0 0 10px; line-height:1.55; font-size:14px; }
+
+/* Founder qualifications are always visible; no accordion interaction */
+.doctors-section .founder-credentials h4 { margin:0; padding:14px 16px; border-bottom:1px solid #ead0d3; color:#85172e; font-size:15px; font-weight:700; }
+.doctors-section .doctor-info { gap:8px; }
