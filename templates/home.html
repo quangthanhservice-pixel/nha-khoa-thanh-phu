@@ -127,7 +127,8 @@
 </section>
 <section class="showcase-section doctors-section" id="doi-ngu-bac-si">
   <div class="container">
-    <div class="showcase-heading">
+    <div class="showcase-heading founder-heading">
+      <span class="founder-emblem" aria-hidden="true">✦</span>
       <h2>BÁC SĨ · FOUNDER</h2>
     </div>
     <div class="doctors-grid">
@@ -137,7 +138,7 @@
           {% if doctor.photo_url %}<img src="{{ doctor.photo_url }}" alt="{{ doctor.full_name }}" loading="lazy" style="width:100%;height:100%;object-fit:cover">{% else %}<span aria-hidden="true">✚</span><p>Ảnh bác sĩ đang cập nhật</p>{% endif %}
         </div>
         <div class="doctor-info">
-          <span class="doctor-label">{{ doctor.title }}</span>
+          <span class="doctor-label">BÁC SĨ · FOUNDER</span>
           <h3>{{ doctor.full_name }}</h3>
           {% if doctor.specialty %}<p><strong>Chuyên khoa:</strong> {{ doctor.specialty }}</p>{% endif %}
           {% if doctor.qualifications %}<p>{{ doctor.qualifications }}</p>{% endif %}
