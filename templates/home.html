@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Nha Khoa Thạnh Phú - Chăm sóc nụ cười tận tâm.">
   <title>Nha Khoa Thạnh Phú | Chăm sóc nụ cười</title>
-  <link rel="stylesheet" href="/static/home.css?v=founder-profile-v4">
+  <link rel="stylesheet" href="/static/home.css?v=founder-profile-v5">
 </head>
 <body>
 
@@ -138,7 +138,7 @@
           {% if doctor.photo_url %}<img src="{{ doctor.photo_url }}" alt="{{ doctor.full_name }}" loading="lazy" style="width:100%;height:100%;object-fit:cover">{% else %}<span aria-hidden="true">✚</span><p>Ảnh bác sĩ đang cập nhật</p>{% endif %}
         </div>
         <div class="doctor-info">
-          <h3>{{ doctor.full_name }}</h3>
+          <h3 class="doctor-name">{{ doctor.full_name }}</h3>
           {% if doctor.specialty %}<p><strong>Chuyên khoa:</strong> {{ doctor.specialty }}</p>{% endif %}
           {% if doctor.qualifications %}<p>{{ doctor.qualifications }}</p>{% endif %}
           {% if doctor.experience %}<p>{{ doctor.experience }}</p>{% endif %}
@@ -569,5 +569,6 @@
   </a>
 </div>
 
+<script>document.querySelectorAll('.doctors-section .doctor-name').forEach(function(el){el.textContent=el.textContent.normalize('NFC');});</script>
 </body>
 </html>
