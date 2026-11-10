@@ -1715,3 +1715,11 @@ h2 { font-size: clamp(32px, 4vw, 48px); }
 .doctors-section .doctor-info p { font-size:15px; line-height:1.65; color:#53434a; padding:9px 0 9px 15px; border-left:3px solid #edd5d6; overflow-wrap:anywhere; }
 .doctors-section .doctor-info p strong { color:#85172e; }
 @media(max-width:700px) { .doctors-section {padding:48px 0 60px;} .doctors-section .doctor-card {grid-template-columns:1fr;} .doctors-section .doctor-photo {min-height:0; aspect-ratio:4/3;} .doctors-section .doctor-info {padding:24px 18px 40px;} .doctors-section .doctor-card::after {width:95px;height:32px;} }
+
+/* Inline founder qualifications, expandable without a separate page */
+.doctors-section .founder-credentials { margin-top:10px; border:1px solid #ead0d3; border-radius:13px; background:#fff9f7; color:#53434a; overflow:hidden; }
+.doctors-section .founder-credentials summary { display:flex; align-items:center; justify-content:space-between; gap:12px; cursor:pointer; padding:14px 16px; font-weight:700; color:#85172e; list-style:none; }
+.doctors-section .founder-credentials summary::-webkit-details-marker { display:none; }
+.doctors-section .founder-credentials[open] summary { border-bottom:1px solid #ead0d3; }
+.doctors-section .founder-credentials ul { margin:0; padding:14px 20px 16px 36px; }
+.doctors-section .founder-credentials li { margin:0 0 10px; line-height:1.55; font-size:14px; }
