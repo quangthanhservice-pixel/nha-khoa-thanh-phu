@@ -144,6 +144,20 @@
           {% if doctor.qualifications %}<p>{{ doctor.qualifications }}</p>{% endif %}
           {% if doctor.experience %}<p>{{ doctor.experience }}</p>{% endif %}
           {% if doctor.bio %}<p>{{ doctor.bio }}</p>{% endif %}
+          {% if 'tuyết sương' in doctor.full_name|lower %}
+          <details class="founder-credentials">
+            <summary>Văn bằng &amp; chứng chỉ chuyên môn <span aria-hidden="true">⌄</span></summary>
+            <ul>
+              <li><strong>2025</strong> · Bác sĩ Chuyên khoa II Răng Hàm Mặt — Trường Đại học Y Dược Cần Thơ</li>
+              <li><strong>2020</strong> · Bác sĩ Chuyên khoa I Răng Hàm Mặt — Đại học Y Dược TP.HCM</li>
+              <li><strong>2019</strong> · Cấy ghép nha khoa (104 tiết) — Bệnh viện Răng Hàm Mặt Trung ương TP.HCM</li>
+              <li><strong>2019</strong> · Định hướng chuyên khoa Tạo hình – Thẩm mỹ (620 tiết) — Đại học Y Dược TP.HCM</li>
+              <li><strong>2018</strong> · Phẫu thuật nha chu (115 tiết) — Đại học Y Dược TP.HCM</li>
+              <li><strong>2024</strong> · Chỉnh hình Răng Mặt (160 tiết) — Bệnh viện Răng Hàm Mặt TP.HCM</li>
+              <li><strong>2016</strong> · Chứng chỉ hành nghề khám bệnh, chữa bệnh chuyên khoa Răng Hàm Mặt — Sở Y tế Tiền Giang</li>
+            </ul>
+          </details>
+          {% endif %}
         </div>
       </article>
       {% else %}<p>Đội ngũ chuyên môn đang được cập nhật.</p>{% endfor %}
