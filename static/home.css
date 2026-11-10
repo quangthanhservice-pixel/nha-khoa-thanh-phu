@@ -1799,3 +1799,9 @@ h2 { font-size: clamp(32px, 4vw, 48px); }
   .doctors-section .founder-credentials ul {padding:8px 15px 12px;}
   .doctors-section .founder-credentials h4 {padding:15px;}
 }
+
+/* Founder portrait alignment: vertically center portrait alongside credentials */
+@media (min-width:701px) {
+  .doctors-section .doctor-card { align-items:center; }
+  .doctors-section .doctor-photo { align-self:center; width:100%; }
+}
