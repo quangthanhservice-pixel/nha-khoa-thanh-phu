@@ -137,7 +137,7 @@
       {% for doctor in doctors %}
       <article class="doctor-card">
         <div class="doctor-photo">
-          {% if doctor.photo_url %}<img src="{{ doctor.photo_url }}" alt="{{ doctor.full_name }}" loading="lazy" style="width:100%;height:100%;object-fit:cover">{% else %}<span aria-hidden="true">✚</span><p>Ảnh bác sĩ đang cập nhật</p>{% endif %}
+          {% if loop.first %}<img src="/static/images/211A2069-208D-45A0-B2E7-A7F47567D1C6.png" alt="{{ doctor.full_name }}" loading="lazy" style="width:100%;height:100%;object-fit:cover">{% elif doctor.photo_url %}<img src="{{ doctor.photo_url }}" alt="{{ doctor.full_name }}" loading="lazy" style="width:100%;height:100%;object-fit:cover">{% else %}<span aria-hidden="true">✚</span><p>Ảnh bác sĩ đang cập nhật</p>{% endif %}
         </div>
         <div class="doctor-info">
           <h3 class="doctor-name">{{ doctor.full_name }}</h3>
